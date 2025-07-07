@@ -2,21 +2,26 @@ package com.demo.dronebackend.config;
 
 
 import com.demo.dronebackend.interceptor.AuthInterceptor;
-import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
-
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    private final AuthInterceptor authInterceptor;
+
+    @Autowired
+    public WebConfig(AuthInterceptor authInterceptor) {
+        this.authInterceptor = authInterceptor;
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new AuthInterceptor())
+        registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns(List.of("/admin/login-pwd"));
+                .excludePathPatterns("/admin/users/login-pwd");
     }
 
 }

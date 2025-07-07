@@ -1,7 +1,6 @@
 package com.demo.dronebackend.service;
 
-import com.demo.dronebackend.dto.user.AddUserRequest;
-import com.demo.dronebackend.dto.user.LoginRequest;
+import com.demo.dronebackend.dto.admin.*;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.User;
@@ -16,5 +15,17 @@ public interface UserService extends IService<User> {
 
     Result loginByPassword(LoginRequest req) throws BusinessException;
 
-    Result<?> addUser(AddUserRequest req);
+    Result<?> addUser(AddUserReq req);
+
+    Result<?> updatePassword(UpdatePasswordReq req);
+
+    Result<?> resetPassword(ResetReq req);
+
+    Result<?> deleteUser(String pathId);
+
+    Result<?> updateUser(String pathId, UpdateUserReq req);
+
+    Result<?> listUsers(UserQuery query);
+
+    Result<?> userListForBand();
 }

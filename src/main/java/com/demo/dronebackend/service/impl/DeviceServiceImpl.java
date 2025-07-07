@@ -8,11 +8,13 @@ import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.mapper.DeviceMapper;
+import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -37,13 +39,16 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
 
-        System.out.println(reqUserid);
-
         if (!userId.equals(reqUserid)) {
             String permission = userMapper.selectById(userId).getPermission();
             if (!PermissionType.admin.getDesc().equals(permission)) {
                 return Result.error("无权限");
             }
+        }
+
+        Device existDevice = deviceMapper.selectById(req.getId());
+        if (existDevice != null) {
+            return Result.error("设备已存在");
         }
 
         Device device = new Device();
@@ -85,21 +90,25 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (StringUtils.hasText(q.getDeviceType())) {
             qw.eq(Device::getDeviceType, q.getDeviceType());
         }
-        if (q.getDeviceUserId() != null) {
-            qw.eq(Device::getDeviceUserId, q.getDeviceUserId());
-        }
         if (StringUtils.hasText(q.getStationId())) {
             qw.eq(Device::getStationId, q.getStationId());
         }
         if (q.getLinkStatus() != null) {
             qw.eq(Device::getLinkStatus, q.getLinkStatus());
         }
+        if (q.getDeviceUserId() != null) {
+            qw.eq(Device::getDeviceUserId, q.getDeviceUserId());
+        }
+
+        User me = CurrentUserContext.get();
+        //普通用户
+        if (!PermissionType.admin.getDesc().equals(me.getPermission())) {
+            qw.eq(Device::getDeviceUserId, me.getId());
+        }
 
         Page<Device> devicePage = deviceMapper.selectPage(page, qw);
-
-        return Result.success(devicePage);
-
-
+        MyPage<Device> myPage = new MyPage<>(devicePage);
+        return Result.success(myPage);
     }
 }
 

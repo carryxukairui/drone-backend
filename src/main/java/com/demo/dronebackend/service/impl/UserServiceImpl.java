@@ -2,21 +2,25 @@ package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.demo.dronebackend.dto.user.AddUserRequest;
-import com.demo.dronebackend.dto.user.LoginRequest;
+import com.demo.dronebackend.dto.admin.*;
+import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.UserService;
 import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.util.MD5Util;
 import com.demo.dronebackend.util.SaltUtil;
-import com.demo.dronebackend.util.SnowflakeIdUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.Random;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
 * @author 28611
@@ -44,12 +48,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         StpUtil.login(user.getId());
-
+        CurrentUserContext.set(user);
         return Result.success(StpUtil.getTokenValue());
     }
 
     @Override
-    public Result<?> addUser(AddUserRequest req) {
+    public Result<?> addUser(AddUserReq req) {
         boolean valid = verifyCode(req.getPhone(), req.getCode());
         if (!valid) {
             throw new BusinessException("验证码不正确或已过期");
@@ -67,7 +71,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
 
         User user = new User();
-        user.setId(SnowflakeIdUtil.INSTANCE.nextId());
         user.setName(req.getName());
         user.setSex(req.getSex());
         user.setOrganization(req.getOrganization());
@@ -78,6 +81,96 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         userMapper.insert(user);
 
         return Result.success("添加用户成功");
+    }
+
+    @Override
+    public Result<?> updatePassword(UpdatePasswordReq req) {
+        long userId = StpUtil.getLoginIdAsLong();
+        User user = userMapper.selectById(userId);
+        String password = user.getPassword();
+        if (!MD5Util.hash(req.getOldPassword(), user.getSalt()).equals(password)) {
+           return Result.error("旧密码错误");
+        }
+        user.setPassword(MD5Util.hash(req.getNewPassword(), user.getSalt()));
+
+        userMapper.updateById(user);
+        return Result.success("修改密码成功");
+    }
+
+    @Override
+    public Result<?> resetPassword(ResetReq req) {
+        long userId = StpUtil.getLoginIdAsLong();
+        User user = userMapper.selectById(userId);
+
+        user.setPassword(MD5Util.hash(req.getNewPassword(), user.getSalt()));
+        userMapper.updateById(user);
+
+        return Result.success("重置密码成功");
+    }
+
+    @Override
+    public Result<?> deleteUser(String pathId) {
+        User user = CurrentUserContext.get();
+        if(!PermissionType.admin.getDesc().equals(user.getPermission())){
+            return Result.error("无权限");
+        }
+        userMapper.deleteById(pathId);
+        return Result.success("删除用户成功");
+    }
+
+    @Override
+    public Result<?> updateUser(String pathId, UpdateUserReq req) {
+        User user = userMapper.selectById(pathId);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        if (StringUtils.hasText(req.getName())) {
+            user.setName(req.getName());
+        }
+        if (StringUtils.hasText(req.getSex())) {
+            user.setSex(req.getSex());
+        }
+        if (StringUtils.hasText(req.getOrganization())) {
+            user.setOrganization(req.getOrganization());
+        }
+        if (StringUtils.hasText(req.getPhone())) {
+            user.setPhone(req.getPhone());
+        }
+
+        userMapper.updateById(user);
+        return Result.success("用户信息更新成功");
+    }
+
+    @Override
+    public Result<?> listUsers(UserQuery query) {
+
+        Page<User> page = new Page<>(query.getPage(), query.getSize());
+
+        LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(query.getName())) {
+            qw.like(User::getName, query.getName());
+        }
+        if (StringUtils.hasText(query.getPhone())) {
+            qw.eq(User::getPhone, query.getPhone());
+        }
+        if (StringUtils.hasText(query.getPermission())) {
+            qw.eq(User::getPermission, query.getPermission());
+        }
+        User user = CurrentUserContext.get();
+        if (!PermissionType.admin.getDesc().equals(user.getPermission())) {
+            qw.eq(User::getId, user.getId());
+        }
+        Page<User> result = userMapper.selectPage(page, qw);
+        return Result.success(new MyPage<>(result));
+    }
+
+    @Override
+    public Result<?> userListForBand() {
+        List<User> users = userMapper.selectList(null);
+        List<UserListIdNameDto> list = users.stream()
+                .map(u -> new UserListIdNameDto(u.getId(), u.getName()))
+                .collect(Collectors.toList());
+        return Result.success(list);
     }
 
 

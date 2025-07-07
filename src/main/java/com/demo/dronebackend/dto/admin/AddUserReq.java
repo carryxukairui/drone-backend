@@ -1,4 +1,4 @@
-package com.demo.dronebackend.dto.user;
+package com.demo.dronebackend.dto.admin;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -8,7 +8,7 @@ import lombok.Data;
  * 添加人员请求体
  */
 @Data
-public class AddUserRequest {
+public class AddUserReq {
 
     @NotBlank(message = "姓名不能为空")
     private String name;
