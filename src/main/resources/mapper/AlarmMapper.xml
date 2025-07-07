@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dronebackend.mapper.AlarmMapper">
+
+    <resultMap id="BaseResultMap" type="com.demo.dronebackend.pojo.Alarm">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="droneModel" column="drone_model" jdbcType="VARCHAR"/>
+            <result property="lastLongitude" column="last_longitude" jdbcType="DOUBLE"/>
+            <result property="lastLatitude" column="last_latitude" jdbcType="DOUBLE"/>
+            <result property="lastAltitude" column="last_altitude" jdbcType="DOUBLE"/>
+            <result property="takeoffTime" column="takeoff_time" jdbcType="TIMESTAMP"/>
+            <result property="landingTime" column="landing_time" jdbcType="TIMESTAMP"/>
+            <result property="intrusionStartTime" column="intrusion_start_time" jdbcType="TIMESTAMP"/>
+            <result property="droneId" column="drone_id" jdbcType="VARCHAR"/>
+            <result property="droneSn" column="drone_sn" jdbcType="VARCHAR"/>
+            <result property="droneType" column="drone_type" jdbcType="VARCHAR"/>
+            <result property="frequency" column="frequency" jdbcType="DOUBLE"/>
+            <result property="bandwidth" column="bandwidth" jdbcType="DOUBLE"/>
+            <result property="speed" column="speed" jdbcType="DOUBLE"/>
+            <result property="horizontalHeadingAngle" column="horizontal_heading_angle" jdbcType="DOUBLE"/>
+            <result property="verticalHeadingAngle" column="vertical_heading_angle" jdbcType="DOUBLE"/>
+            <result property="type" column="type" jdbcType="TINYINT"/>
+            <result property="scanids" column="scanIDs" jdbcType="OTHER"/>
+            <result property="scanid" column="scanID" jdbcType="VARCHAR"/>
+            <result property="lastingTime" column="lasting_time" jdbcType="FLOAT"/>
+            <result property="backLongitude" column="back_longitude" jdbcType="DOUBLE"/>
+            <result property="backLatitude" column="back_latitude" jdbcType="DOUBLE"/>
+            <result property="pilotLongitude" column="pilot_longitude" jdbcType="DOUBLE"/>
+            <result property="pilotLatitude" column="pilot_latitude" jdbcType="DOUBLE"/>
+            <result property="trajectory" column="trajectory" jdbcType="OTHER"/>
+            <result property="stationId" column="station_id" jdbcType="VARCHAR"/>
+            <result property="detectType" column="detect_type" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,drone_model,last_longitude,
+        last_latitude,last_altitude,takeoff_time,
+        landing_time,intrusion_start_time,drone_id,
+        drone_sn,drone_type,frequency,
+        bandwidth,speed,horizontal_heading_angle,
+        vertical_heading_angle,type,scanIDs,
+        scanID,lasting_time,back_longitude,
+        back_latitude,pilot_longitude,pilot_latitude,
+        trajectory,station_id,detect_type
+    </sql>
+</mapper>

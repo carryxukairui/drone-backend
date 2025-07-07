@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dronebackend.mapper.DeviceMapper">
+
+    <resultMap id="BaseResultMap" type="com.demo.dronebackend.pojo.Device">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="deviceName" column="device_name" jdbcType="VARCHAR"/>
+            <result property="deviceType" column="device_type" jdbcType="VARCHAR"/>
+            <result property="deviceUserId" column="device_user_id" jdbcType="BIGINT"/>
+            <result property="deviceStatus" column="device_status" jdbcType="OTHER"/>
+            <result property="stationId" column="station_id" jdbcType="VARCHAR"/>
+            <result property="linkStatus" column="link_status" jdbcType="TINYINT"/>
+            <result property="longitude" column="longitude" jdbcType="FLOAT"/>
+            <result property="latitude" column="latitude" jdbcType="FLOAT"/>
+            <result property="ip" column="ip" jdbcType="VARCHAR"/>
+            <result property="coverRange" column="cover_range" jdbcType="FLOAT"/>
+            <result property="power" column="power" jdbcType="FLOAT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,device_name,device_type,
+        device_user_id,device_status,station_id,
+        link_status,longitude,latitude,
+        ip,cover_range,power
+    </sql>
+</mapper>

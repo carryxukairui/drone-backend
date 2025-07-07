@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dronebackend.mapper.DisposalRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.demo.dronebackend.pojo.DisposalRecord">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="time" column="time" jdbcType="TIMESTAMP"/>
+            <result property="duration" column="duration" jdbcType="FLOAT"/>
+            <result property="deviceId" column="device_id" jdbcType="VARCHAR"/>
+            <result property="g09Onoff" column="g09_onoff" jdbcType="TINYINT"/>
+            <result property="g16Onoff" column="g16_onoff" jdbcType="TINYINT"/>
+            <result property="g24Onoff" column="g24_onoff" jdbcType="TINYINT"/>
+            <result property="g58Onoff" column="g58_onoff" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,time,duration,
+        device_id,g09_onoff,g16_onoff,
+        g24_onoff,g58_onoff
+    </sql>
+</mapper>
