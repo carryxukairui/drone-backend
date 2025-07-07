@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service;
 
-import com.demo.dronebackend.dto.LoginRequest;
+import com.demo.dronebackend.dto.user.AddUserRequest;
+import com.demo.dronebackend.dto.user.LoginRequest;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.User;
@@ -14,4 +15,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface UserService extends IService<User> {
 
     Result loginByPassword(LoginRequest req) throws BusinessException;
+
+    Result<?> addUser(AddUserRequest req);
 }

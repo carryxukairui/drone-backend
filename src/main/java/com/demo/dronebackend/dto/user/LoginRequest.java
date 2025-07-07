@@ -1,4 +1,4 @@
-package com.demo.dronebackend.dto;
+package com.demo.dronebackend.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

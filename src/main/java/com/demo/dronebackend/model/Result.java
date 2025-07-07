@@ -30,4 +30,7 @@ public class Result<T> {
         return new Result<T>(200, msg, data);
     }
 
+    public static Object notLogin(String 未登录) {
+        return new Result<>(401, 未登录, null);
+    }
 }

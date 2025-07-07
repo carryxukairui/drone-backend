@@ -1,5 +1,8 @@
 package com.demo.dronebackend.service;
 
+import com.demo.dronebackend.dto.device.DeviceQuery;
+import com.demo.dronebackend.dto.device.DeviceReq;
+import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -10,4 +13,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface DeviceService extends IService<Device> {
 
+    Result<?> addDevice(DeviceReq req);
+
+    Result<?> updateDevice(DeviceReq req);
+
+    Result<?> listDevices(DeviceQuery query);
 }
