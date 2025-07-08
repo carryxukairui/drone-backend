@@ -18,13 +18,32 @@ public class AdminContoller {
     private final UserService userService;
 
     /**
+     * 发送验证码
+     * @param req 发送验证码请求体
+     */
+    @PostMapping("/users/send-code")
+    public Result<?> sendCode(@Valid @RequestBody SendCodeReq req) {
+        return userService.sendCode(req);
+    }
+
+    /**
      * 密码登录
-     * @param req 登录请求体
+     * @param req 密码登录请求体
      */
     @PostMapping("/users/login-pwd")
     public Result loginByPassword(@Valid @RequestBody LoginByPswReq req) {
         return userService.loginByPassword(req);
     }
+
+    /**
+     * 验证码登录
+     * @param req 验证码登录请求体
+     */
+    @PostMapping("/users/login-code")
+    public Result<?> loginByCode(@Valid @RequestBody LoginByCodeReq req) {
+        return userService.loginByCode(req);
+    }
+
 
     /**
      * 修改密码
@@ -64,45 +83,40 @@ public class AdminContoller {
 
     /**
      * 删除人员
+     * @param id 用户id
      */
     @DeleteMapping("/users/{id}")
     public Result<?> deleteUser(@PathVariable("id") @NotBlank String id) {
         return userService.deleteUser(id);
     }
 
-    /*
-    修改人员信息
+    /**
+     * 修改人员信息
+     * @param id 用户id
+     * @param req 修改用户请求体
      */
     @PutMapping("/users/{id}")
     public Result<?> updateUser(
-            @PathVariable("id") String pathId,
+            @PathVariable("id") String id,
             @Valid @RequestBody UpdateUserReq req) {
-        return userService.updateUser(pathId, req);
+        return userService.updateUser(id, req);
     }
 
     /**
      * 获取人员列表
+     * @param req 查询用户列表请求体
      */
     @GetMapping("/users")
-    public Result<?> listUsers(UserQuery query) {
-        return userService.listUsers(query);
-    }
-
-    @GetMapping("/available-for-binding")
-    public Result<?> userListForBand() {
-        return userService.userListForBand();
-    }
-    @PostMapping("/send-code")
-    public Result<?> sendCode(@Valid @RequestBody SendCodeReq req) {
-        return userService.sendCode(req);
+    public Result<?> listUsers(@Valid UserQueryReq req) {
+        return userService.listUsers(req);
     }
 
     /**
-     * 验证码登录
+     * 获取用户名单列表，用于绑定设备
      */
-    @PostMapping("/login-code")
-    public Result<?> loginByCode(@Valid @RequestBody LoginByCodeReq req) {
-        return userService.loginByCode(req);
+    @GetMapping("/users/available-for-binding")
+    public Result<?> userListForBind() {
+        return userService.userListForBind();
     }
 
 }

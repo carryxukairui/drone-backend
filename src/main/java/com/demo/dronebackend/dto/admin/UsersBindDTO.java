@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserListIdNameDto {
+public class UsersBindDTO {
     private Long id;
     private String name;
 }

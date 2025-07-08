@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,12 +16,14 @@ import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.util.MD5Util;
 import com.demo.dronebackend.util.SaltUtil;
+import com.demo.dronebackend.util.SmsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.demo.dronebackend.constant.SystemConstants.INITIAL_PASSWORD;
 
 /**
  * 用户Service实现
@@ -31,9 +34,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService{
 
     private final UserMapper userMapper;
+    private final SmsService smsService;
 
     @Override
-    public Result loginByPassword(LoginRequest req) throws BusinessException {
+    public Result<?> sendCode(SendCodeReq req) {
+        String phone = req.getPhone();
+        int flag = smsService.sendSms(phone, req.getSign());
+        if (flag == -1){
+            return Result.error("非法请求");
+        }
+        return Result.success("验证码发送成功");
+    }
+
+    @Override
+    public Result loginByPassword(LoginByPswReq req) throws BusinessException {
 
         User user = this.query().eq("phone", req.getPhone()).one();
         if (user == null) {
@@ -47,11 +61,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 登录
         StpUtil.login(user.getId());
         // 返回token和permission
-        // TODO: 使用LoginDTO
-        Map<String,String> map=new HashMap<>();
-        map.put("token",StpUtil.getTokenValue());
-        map.put("permission",user.getPermission());
-        return Result.success(map);
+        return Result.success(new LoginDTO(StpUtil.getTokenValue(),user.getPermission()));
+    }
+
+    @Override
+    public Result<?> loginByCode(LoginByCodeReq req) {
+        String phone = req.getPhone();
+        String code = req.getCode();
+        String storeCode = smsService.getStoredCode(phone);
+        if (storeCode == null ){
+            return Result.error("验证码已过期");
+        }
+        if (!storeCode.equals(code)){
+            return Result.error("验证码错误");
+        }
+        User user = query().eq("phone", phone).one();
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        StpUtil.login(user.getId());
+        smsService.deleteCode(phone);
+        return Result.success(new LoginDTO(StpUtil.getTokenValue(), user.getPermission()));
     }
 
     @Override
@@ -90,9 +120,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
-        boolean valid = verifyCode(req.getPhone(), req.getCode());
-        if (!valid) {
-            return Result.error("验证码不正确或已过期");
+        String storeCode = smsService.getStoredCode(req.getPhone());
+        if (storeCode == null ){
+            return Result.error("验证码已过期");
+        }
+        if (!storeCode.equals(req.getCode())){
+            return Result.error("验证码错误");
         }
         User user = query().eq("phone", req.getPhone()).one();
         if (user != null) {
@@ -128,22 +161,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public Result<?> updateUser(String pathId, UpdateUserReq req) {
-        User user = userMapper.selectById(pathId);
-        if (user == null) {
-            return Result.error("用户不存在");
+    public Result<?> updateUser(String id, UpdateUserReq req) {
+        if (!isAdmin()){
+            throw new BusinessException("无权限");
         }
-        if (StringUtils.hasText(req.getName())) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (StrUtil.isNotBlank(req.getName())){
             user.setName(req.getName());
         }
-        if (StringUtils.hasText(req.getSex())) {
+        if (StrUtil.isNotBlank(req.getSex())){
             user.setSex(req.getSex());
         }
-        if (StringUtils.hasText(req.getOrganization())) {
+        if (StrUtil.isNotBlank(req.getPhone())){
+            user.setPhone(req.getPhone());
+        }
+        if (StrUtil.isNotBlank(req.getOrganization())){
             user.setOrganization(req.getOrganization());
         }
-        if (StringUtils.hasText(req.getPhone())) {
-            user.setPhone(req.getPhone());
+        if (StrUtil.isNotBlank(req.getPermission())){
+            user.setPermission(req.getPermission());
         }
 
         userMapper.updateById(user);
@@ -151,33 +190,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public Result<?> listUsers(UserQuery query) {
-
-        Page<User> page = new Page<>(query.getPage(), query.getSize());
-
+    public Result<?> listUsers(UserQueryReq req) {
+        if (!isAdmin()){
+            throw new BusinessException("无权限");
+        }
+        Page<User> page = new Page<>(req.getPage(), req.getSize());
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(query.getName())) {
-            qw.like(User::getName, query.getName());
+        if (StrUtil.isNotBlank(req.getName())) {
+            qw.like(User::getName, req.getName());
         }
-        if (StringUtils.hasText(query.getPhone())) {
-            qw.eq(User::getPhone, query.getPhone());
+        if (StrUtil.isNotBlank(req.getPhone())) {
+            qw.eq(User::getPhone, req.getPhone());
         }
-        if (StringUtils.hasText(query.getPermission())) {
-            qw.eq(User::getPermission, query.getPermission());
-        }
-        User user = CurrentUserContext.get();
-        if (!PermissionType.admin.getDesc().equals(user.getPermission())) {
-            qw.eq(User::getId, user.getId());
+        if (StrUtil.isNotBlank(req.getPermission())) {
+            qw.eq(User::getPermission, req.getPermission());
         }
         Page<User> result = userMapper.selectPage(page, qw);
         return Result.success(new MyPage<>(result));
     }
 
     @Override
-    public Result<?> userListForBand() {
-        List<User> users = userMapper.selectList(null);
-        List<UserListIdNameDto> list = users.stream()
-                .map(u -> new UserListIdNameDto(u.getId(), u.getName()))
+    public Result<?> userListForBind() {
+        List<User> users = query().list();
+        List<UsersBindDTO> list = users.stream()
+                .map(u -> new UsersBindDTO(u.getId(), u.getName()))
                 .collect(Collectors.toList());
         return Result.success(list);
     }
@@ -189,42 +225,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return true;
         }
         return false;
-    }
-    @Override
-    public Result<?> sendCode(SendCodeReq req) {
-        String phone = req.getPhone();
-        int flag = smsService.sendSms(phone, req.getSign());
-        if (flag == -1){
-            return Result.error("非法请求");
-        }
-
-        return Result.success("验证码发送成功");
-    }
-
-    @Override
-    public Result<?> loginByCode(LoginByCodeReq req) {
-        String phone = req.getPhone();
-        String code = req.getCode();
-        String storeCode = smsService.getStoredCode( phone);
-        if (storeCode == null ){
-            return Result.error("验证码已过期");
-        }
-        if (!storeCode.equals(code)){
-            return Result.error("验证码错误");
-        }
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
-        if (user == null) {
-            return Result.error("用户不存在");
-        }
-        StpUtil.login(user.getId());
-        smsService.deleteCode( phone);
-        return Result.success(new LoginDto(StpUtil.getTokenValue(), user.getPermission()));
-    }
-
-
-    //TODO: 验证码校验逻辑
-    private boolean verifyCode(String phone, String code) {
-        return true;
     }
 }
 
