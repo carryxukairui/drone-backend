@@ -7,7 +7,7 @@ import lombok.Data;
 import static com.demo.dronebackend.constant.SystemConstants.*;
 
 @Data
-public class LoginRequest {
+public class LoginByPswReq {
     @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = PHONE_REGEX, message = "手机号格式不正确")
     private String phone;

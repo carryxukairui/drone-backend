@@ -1,19 +1,17 @@
 package com.demo.dronebackend.service.impl;
 
-import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.enums.PermissionType;
-import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,21 +28,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     implements DeviceService{
 
     private final DeviceMapper deviceMapper;
-    private final UserMapper userMapper;
 
     @Override
     public Result<?> addDevice(DeviceReq req) {
-
-        Long userId = StpUtil.getLoginIdAsLong();
-
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
-
-        if (!userId.equals(reqUserid)) {
-            String permission = userMapper.selectById(userId).getPermission();
-            if (!PermissionType.admin.getDesc().equals(permission)) {
-                return Result.error("无权限");
-            }
-        }
 
         Device existDevice = deviceMapper.selectById(req.getId());
         if (existDevice != null) {
@@ -68,6 +55,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     @Override
     public Result<?> updateDevice(DeviceReq req) {
         Device device = deviceMapper.selectById(req.getId());
+        if (device == null) {
+            return Result.error("设备不存在");
+        }
 
         device.setDeviceName(req.getDeviceName());
         device.setDeviceType(req.getDeviceType());

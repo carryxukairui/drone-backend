@@ -19,12 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-
-import static com.demo.dronebackend.constant.SystemConstants.INITIAL_PASSWORD;
 
 /**
  * 用户Service实现
@@ -85,6 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setSalt(SaltUtil.generateSalt());
         user.setPassword(MD5Util.hash(req.getNewPassword(), user.getSalt()));
         userMapper.updateById(user);
+
         return Result.success("重置密码成功");
     }
 
@@ -193,6 +190,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         return false;
     }
+    @Override
+    public Result<?> sendCode(SendCodeReq req) {
+        String phone = req.getPhone();
+        int flag = smsService.sendSms(phone, req.getSign());
+        if (flag == -1){
+            return Result.error("非法请求");
+        }
+
+        return Result.success("验证码发送成功");
+    }
+
+    @Override
+    public Result<?> loginByCode(LoginByCodeReq req) {
+        String phone = req.getPhone();
+        String code = req.getCode();
+        String storeCode = smsService.getStoredCode( phone);
+        if (storeCode == null ){
+            return Result.error("验证码已过期");
+        }
+        if (!storeCode.equals(code)){
+            return Result.error("验证码错误");
+        }
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        StpUtil.login(user.getId());
+        smsService.deleteCode( phone);
+        return Result.success(new LoginDto(StpUtil.getTokenValue(), user.getPermission()));
+    }
+
+
     //TODO: 验证码校验逻辑
     private boolean verifyCode(String phone, String code) {
         return true;

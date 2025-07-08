@@ -1,9 +1,7 @@
 package com.demo.dronebackend.controller;
 
 
-import com.demo.dronebackend.dto.admin.LoginRequest;
-import com.demo.dronebackend.dto.admin.ResetReq;
-import com.demo.dronebackend.dto.admin.UpdatePasswordReq;
+import com.demo.dronebackend.dto.admin.*;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
@@ -22,7 +20,7 @@ public class UserController {
     密码登录
      */
     @PostMapping("/login-pwd")
-    public Result loginByPassword(@Valid @RequestBody LoginRequest req) {
+    public Result loginByPassword(@Valid @RequestBody LoginByPswReq req) {
         return userService.loginByPassword(req);
     }
 
@@ -40,4 +38,21 @@ public class UserController {
     public Result<?> resetPassword(@Valid @RequestBody ResetReq req) {
         return userService.resetPassword(req);
     }
+
+    /**
+     * 发送验证码
+     */
+    @PostMapping("/send-code")
+    public Result<?> sendCode(@Valid @RequestBody SendCodeReq req) {
+        return userService.sendCode(req);
+    }
+
+    /**
+     * 验证码登录
+     */
+    @PostMapping("/login-code")
+    public Result<?> loginByCode(@Valid @RequestBody LoginByCodeReq req) {
+        return userService.loginByCode(req);
+    }
+
 }

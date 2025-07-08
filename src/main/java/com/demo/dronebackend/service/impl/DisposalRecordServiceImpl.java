@@ -4,11 +4,16 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
+import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.DisposalRecord;
+import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DisposalRecordService;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
+import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +30,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
     implements DisposalRecordService{
 
     private final DisposalRecordMapper mapper;
+    private final UserMapper userMapper;
     @Override
     public Result<?> DisposalList(DisposalRecordQuery q) {
         Page<DisposalRecord> page = new Page<>(q.getPage(), q.getSize());
@@ -39,9 +45,17 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         if (q.getCounterEnd() != null) {
             qw.le(DisposalRecord::getTime, q.getCounterEnd());
         }
+
+        User user = CurrentUserContext.get();
+        if(!PermissionType.admin.getDesc().equals( user.getPermission())){
+            Long userId = user.getId();
+            qw.eq(DisposalRecord::getDeviceId, q.getDeviceId());
+            qw.inSql(DisposalRecord::getDeviceId,
+                    "SELECT id FROM device WHERE device_user_id" + userId);
+        }
         Page<DisposalRecord> disposalRecordPage = mapper.selectPage(page, qw);
 
-        return Result.success(disposalRecordPage);
+        return Result.success(new MyPage<DisposalRecord>(disposalRecordPage));
     }
 
     @Override
