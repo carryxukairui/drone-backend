@@ -23,10 +23,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
-* @author 28611
-* @description 针对表【user(人员表)】的数据库操作Service实现
-* @createDate 2025-07-07 09:44:52
-*/
+ * 用户Service实现
+ */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
@@ -37,18 +35,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public Result loginByPassword(LoginRequest req) throws BusinessException {
 
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, req.getPhone()));
+        User user = this.query().eq("phone", req.getPhone()).one();
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
-        // 1. 验证密码（MD5+salt）
+        // 验证密码（MD5+salt）
         String hashed = MD5Util.hash(req.getPassword(), user.getSalt());
         if (!hashed.equals(user.getPassword())) {
             throw new BusinessException("密码错误");
         }
-
+        // 登录
         StpUtil.login(user.getId());
-        CurrentUserContext.set(user);
         return Result.success(StpUtil.getTokenValue());
     }
 

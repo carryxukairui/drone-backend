@@ -10,57 +10,70 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("admin/users")
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminContoller {
 
     private final UserService userService;
 
     /**
-      密码登录
+     * 密码登录
+     * @param req 登录请求体
+     * @return
      */
-    @PostMapping("/login-pwd")
-    public Result loginByPassword( @Valid @RequestBody LoginRequest req) {
+    @PostMapping("/users/login-pwd")
+    public Result loginByPassword(@Valid @RequestBody LoginRequest req) {
         return userService.loginByPassword(req);
     }
 
     /**
-     * 添加人员
+     * 修改密码
      */
-    @PostMapping()
-    public Result<?> addUser(@Valid @RequestBody AddUserReq req) {
-        return  userService.addUser(req);
-    }
-
-
-    /*
-    修改密码
-     */
-    @PostMapping("/change-pwd")
+    @PostMapping("/users/change-pwd")
     public Result<?> updatePassword(@Valid @RequestBody UpdatePasswordReq req) {
         return userService.updatePassword(req);
     }
 
-    /*
-    忘记密码
+    /**
+     * 忘记密码
+     *
+     * @param req
+     * @return
      */
-    @PostMapping("/reset-pwd")
+    @PostMapping("/users/reset-pwd")
     public Result<?> resetPassword(@Valid @RequestBody ResetReq req) {
         return userService.resetPassword(req);
+    }
+
+    @GetMapping("/users/logout")
+    public Result<?> logout() {
+        StpUtil.logout();
+        return Result.success("登出成功");
+    }
+
+    /**
+     * 添加人员
+     *
+     * @param req
+     * @return
+     */
+    @PostMapping("/users")
+    public Result<?> addUser(@Valid @RequestBody AddUserReq req) {
+        return userService.addUser(req);
     }
 
     /**
      * 删除人员
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/users/{id}")
     public Result<?> deleteUser(@PathVariable("id") String pathId) {
-        return  userService.deleteUser(pathId);
+        return userService.deleteUser(pathId);
     }
 
     /*
     修改人员信息
      */
-    @PutMapping("/{id}")
+    @PutMapping("/users/{id}")
     public Result<?> updateUser(
             @PathVariable("id") String pathId,
             @Valid @RequestBody UpdateUserReq req) {
@@ -70,22 +83,15 @@ public class AdminContoller {
     /**
      * 获取人员列表
      */
-    @GetMapping()
+    @GetMapping("/users")
     public Result<?> listUsers(UserQuery query) {
         return userService.listUsers(query);
     }
 
-    @GetMapping("/userListForBand")
+    @GetMapping("/available-for-binding")
     public Result<?> userListForBand() {
         return userService.userListForBand();
     }
-
-    @GetMapping("/logout")
-    public Result<?> logout() {
-        StpUtil.logout();
-        return Result.success("登出成功");
-    }
-
 
 
 }

@@ -7,7 +7,7 @@ import java.util.Base64;
 public final class SaltUtil {
 
     private static final String ALGORITHM = "SHA1PRNG"; // 或 "NativePRNG"、"DRBG"
-    private static final int DEFAULT_SALT_LENGTH = 16;  // 16 字节 = 128 位
+    private static final int DEFAULT_SALT_LENGTH = 16;
 
     private SaltUtil() { }
 
