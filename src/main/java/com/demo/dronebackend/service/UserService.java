@@ -14,13 +14,13 @@ public interface UserService extends IService<User> {
 
     Result loginByPassword(LoginRequest req) throws BusinessException;
 
-    Result<?> addUser(AddUserReq req);
-
     Result<?> updatePassword(UpdatePasswordReq req);
 
     Result<?> resetPassword(ResetReq req);
 
-    Result<?> deleteUser(String pathId);
+    Result<?> addUser(AddUserReq req);
+
+    Result<?> deleteUser(String id);
 
     Result<?> updateUser(String pathId, UpdateUserReq req);
 

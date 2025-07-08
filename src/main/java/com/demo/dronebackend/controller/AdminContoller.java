@@ -6,6 +6,7 @@ import com.demo.dronebackend.dto.admin.*;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,6 @@ public class AdminContoller {
     /**
      * 密码登录
      * @param req 登录请求体
-     * @return
      */
     @PostMapping("/users/login-pwd")
     public Result loginByPassword(@Valid @RequestBody LoginRequest req) {
@@ -28,6 +28,7 @@ public class AdminContoller {
 
     /**
      * 修改密码
+     * @param req 修改密码请求体
      */
     @PostMapping("/users/change-pwd")
     public Result<?> updatePassword(@Valid @RequestBody UpdatePasswordReq req) {
@@ -36,15 +37,16 @@ public class AdminContoller {
 
     /**
      * 忘记密码
-     *
-     * @param req
-     * @return
+     * @param req 重置密码请求体
      */
     @PostMapping("/users/reset-pwd")
     public Result<?> resetPassword(@Valid @RequestBody ResetReq req) {
         return userService.resetPassword(req);
     }
 
+    /**
+     * 用户登出
+     */
     @GetMapping("/users/logout")
     public Result<?> logout() {
         StpUtil.logout();
@@ -53,9 +55,7 @@ public class AdminContoller {
 
     /**
      * 添加人员
-     *
-     * @param req
-     * @return
+     * @param req 添加用户请求体
      */
     @PostMapping("/users")
     public Result<?> addUser(@Valid @RequestBody AddUserReq req) {
@@ -66,8 +66,8 @@ public class AdminContoller {
      * 删除人员
      */
     @DeleteMapping("/users/{id}")
-    public Result<?> deleteUser(@PathVariable("id") String pathId) {
-        return userService.deleteUser(pathId);
+    public Result<?> deleteUser(@PathVariable("id") @NotBlank String id) {
+        return userService.deleteUser(id);
     }
 
     /*
