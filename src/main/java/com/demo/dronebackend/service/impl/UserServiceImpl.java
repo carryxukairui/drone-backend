@@ -15,6 +15,7 @@ import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.util.MD5Util;
 import com.demo.dronebackend.util.SaltUtil;
+import com.demo.dronebackend.util.SmsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -31,9 +32,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService{
 
     private final UserMapper userMapper;
-
+    private final SmsService smsService;
     @Override
-    public Result loginByPassword(LoginRequest req) throws BusinessException {
+    public Result loginByPassword(LoginByPswReq req) throws BusinessException {
 
         User user = this.query().eq("phone", req.getPhone()).one();
         if (user == null) {
@@ -168,6 +169,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 .map(u -> new UserListIdNameDto(u.getId(), u.getName()))
                 .collect(Collectors.toList());
         return Result.success(list);
+    }
+
+    @Override
+    public Result<?> sendCode(SendCodeReq req) {
+        String phone = req.getPhone();
+        int flag = smsService.sendSms(phone, req.getSign());
+        if (flag == -1){
+            return Result.error("非法请求");
+        }
+
+        return Result.success("验证码发送成功");
+    }
+
+    @Override
+    public Result<?> loginByCode(LoginByCodeReq req) {
+        String phone = req.getPhone();
+        String code = req.getCode();
+        String storeCode = smsService.getStoredCode( phone);
+        if (storeCode == null ){
+            return Result.error("验证码已过期");
+        }
+        if (!storeCode.equals(code)){
+            return Result.error("验证码错误");
+        }
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        StpUtil.login(user.getId());
+        smsService.deleteCode( phone);
+        return Result.success(new LoginDto(StpUtil.getTokenValue(), user.getPermission()));
     }
 
 

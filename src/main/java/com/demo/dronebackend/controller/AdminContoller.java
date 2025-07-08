@@ -22,7 +22,7 @@ public class AdminContoller {
      * @return
      */
     @PostMapping("/users/login-pwd")
-    public Result loginByPassword(@Valid @RequestBody LoginRequest req) {
+    public Result loginByPassword(@Valid @RequestBody LoginByPswReq req) {
         return userService.loginByPassword(req);
     }
 
@@ -92,6 +92,17 @@ public class AdminContoller {
     public Result<?> userListForBand() {
         return userService.userListForBand();
     }
+    @PostMapping("/send-code")
+    public Result<?> sendCode(@Valid @RequestBody SendCodeReq req) {
+        return userService.sendCode(req);
+    }
 
+    /**
+     * 验证码登录
+     */
+    @PostMapping("/login-code")
+    public Result<?> loginByCode(@Valid @RequestBody LoginByCodeReq req) {
+        return userService.loginByCode(req);
+    }
 
 }

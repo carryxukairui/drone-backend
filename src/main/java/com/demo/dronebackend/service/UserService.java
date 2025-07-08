@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 public interface UserService extends IService<User> {
 
-    Result loginByPassword(LoginRequest req) throws BusinessException;
+    Result loginByPassword(LoginByPswReq req) throws BusinessException;
 
     Result<?> addUser(AddUserReq req);
 
@@ -27,4 +27,8 @@ public interface UserService extends IService<User> {
     Result<?> listUsers(UserQuery query);
 
     Result<?> userListForBand();
+
+    Result<?> sendCode(SendCodeReq req);
+
+    Result<?> loginByCode(LoginByCodeReq req);
 }
