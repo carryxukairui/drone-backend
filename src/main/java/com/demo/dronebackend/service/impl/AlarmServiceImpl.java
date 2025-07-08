@@ -3,13 +3,18 @@ package com.demo.dronebackend.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.dto.alarm.AlarmDto;
 import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
+import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.mapper.AlarmMapper;
+import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -53,9 +58,35 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             qw.eq(Alarm::getDetectType, q.getDetectType());
         }
 
-        Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
+        User me = CurrentUserContext.get();
+        if(PermissionType.admin.getDesc().equals( me.getPermission())){
+            Long userId = me.getId();
+            qw.inSql(Alarm::getScanid,
+                    "SELECT id FROM device WHERE device_user_id = " + userId);
+        }
 
-        return Result.success(alarmPage);
+        Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
+        List<AlarmDto> dtoList = alarmPage.getRecords().stream().map(a -> {
+            AlarmDto dto = new AlarmDto();
+            dto.setId(String.valueOf(a.getId()));
+            dto.setDroneModel(a.getDroneModel());
+            dto.setIntrusionTime(a.getIntrusionStartTime());
+            // TODO:接入对应的位置信息api接口获取
+            dto.setLocation("地址");
+
+            dto.setType(a.getDroneType());
+            dto.setDroneSn(a.getDroneSn());
+            return dto;
+        }).toList();
+
+        MyPage<AlarmDto> resultPage = new MyPage<>(
+                alarmPage.getCurrent(),
+                alarmPage.getPages(),
+                alarmPage.getSize(),
+                alarmPage.getTotal(),
+                dtoList
+        );
+        return Result.success(resultPage);
     }
 
     @Override

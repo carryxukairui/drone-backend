@@ -23,10 +23,13 @@ public class AlarmController {
 
     @GetMapping()
     public Result<?> getAlarms(@Valid AlarmQuery query) {
-    //TODO:判断管理员和用户
         return alarmService.listAlarms(query);
     }
 
+
+    /*
+    * 更新告警信息不需要这部分，不能更新告警信息
+     */
     @PutMapping("/{alarm_id}")
     public  Result<?> updateAlarm(
             @PathVariable("alarm_id") Long alarmId,
@@ -34,11 +37,23 @@ public class AlarmController {
         return  alarmService.updateAlarm(alarmId, req);
     }
 
+    /**
+     * 删除告警信息
+     * @param alarmId 告警id
+     * @return
+     */
+
     @DeleteMapping("/{alarm_id}")
     public Result<?> deleteAlarm(@PathVariable("alarm_id") Long alarmId)  {
         return alarmService.deleteAlarm(alarmId);
     }
 
+
+    /**
+     * 批量删除告警信息
+     * @RequestBody BatchDeleteRequest 删除告警的id列表
+     * @return
+     */
     @PostMapping("/batch_delete")
     public  Result<?> batchDelete(@Valid @RequestBody BatchDeleteRequest req) {
 
