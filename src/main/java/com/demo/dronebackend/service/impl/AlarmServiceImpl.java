@@ -1,11 +1,14 @@
 package com.demo.dronebackend.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.alarm.AlarmDto;
 import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.screen.FlightHistoryDto;
+import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.MyPage;
@@ -138,6 +141,74 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
         return Result.success("批量删除成功");
+    }
+
+    @Override
+    public Result<?> historyList(FlightHistoryQuery q) {
+        Page<Alarm> page = new Page<>(q.getPage(), q.getSize());
+        LambdaQueryWrapper<Alarm> qw = new LambdaQueryWrapper<>();
+
+        long userId = StpUtil.getLoginIdAsLong();
+
+        if (q.getStartTime() != null) {
+            qw.ge(Alarm::getTakeoffTime, q.getStartTime());
+        }
+        if (q.getEndTime() != null) {
+            qw.le(Alarm::getTakeoffTime, q.getEndTime());
+        }
+        if (StringUtils.hasText(q.getDroneId())) {
+            qw.eq(Alarm::getDroneId, q.getDroneId());
+        }
+        if (StringUtils.hasText(q.getDroneSn())) {
+            qw.eq(Alarm::getDroneSn, q.getDroneSn());
+        }
+        if (StringUtils.hasText(q.getModel())) {
+            qw.eq(Alarm::getDroneModel, q.getModel());
+        }
+        if (q.getDroneType() != null) {
+            qw.eq(Alarm::getDroneType, q.getDroneType());
+        }
+        // 已反制/未反制过滤
+        if (Boolean.TRUE.equals(q.getDisposalFlag())) {
+            qw.inSql(Alarm::getScanid,
+                    "SELECT id FROM device WHERE device_user_id = " + userId);
+            qw.isNotNull(Alarm::getLastingTime);
+        } else if (Boolean.FALSE.equals(q.getDisposalFlag())) {
+            // 未反制
+            qw.inSql(Alarm::getScanid,
+                    "SELECT id FROM device WHERE device_user_id = " + userId);
+            qw.isNull(Alarm::getLastingTime);
+        }
+
+        Page<Alarm> pr = alarmMapper.selectPage(page, qw);
+
+        var dtoList = pr.getRecords().stream().map(r -> {
+            FlightHistoryDto dto = new FlightHistoryDto();
+            dto.setTakeoffTime(r.getTakeoffTime());
+            dto.setLandingTime(r.getLandingTime());
+            dto.setDroneId(r.getDroneId());
+            dto.setDroneSn(r.getDroneSn());
+            dto.setModel(r.getDroneModel());
+            //TODO:
+            dto.setDroneType( "国标");
+            dto.setFrequency(r.getFrequency());
+            dto.setLastingTime(r.getLastingTime());
+            //TODO:
+            dto.setDisposal(true);
+            dto.setPilotLongitude(r.getPilotLongitude());
+            dto.setPilotLatitude(r.getPilotLatitude());
+            //TODO:对应的经纬度
+            dto.setTakeoffLongitude(1.11);
+            dto.setTakeoffLatitude(1.11);
+
+            dto.setLastLongitude(r.getLastLongitude());
+            dto.setLastLatitude(r.getLastLatitude());
+            return dto;
+        }).toList();
+
+        return Result.success(new MyPage<>(
+                pr.getCurrent(), pr.getPages(),
+                pr.getSize(), pr.getTotal(), dtoList));
     }
 }
 

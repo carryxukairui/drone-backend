@@ -2,6 +2,7 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
@@ -23,4 +24,6 @@ public interface AlarmService extends IService<Alarm> {
     Result<?> deleteAlarm(Long alarmId) throws BusinessException;
 
     Result<?> batchDelete(List<String> ids);
+
+    Result<?> historyList(FlightHistoryQuery query);
 }

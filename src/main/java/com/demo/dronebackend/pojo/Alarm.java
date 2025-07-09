@@ -26,9 +26,9 @@ public class Alarm {
 
     private Double lastAltitude;
 
-    private Date takeoffTime;
+    private LocalDateTime takeoffTime;
 
-    private Date landingTime;
+    private LocalDateTime landingTime;
 
     private LocalDateTime intrusionStartTime;
 
