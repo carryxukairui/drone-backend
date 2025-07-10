@@ -4,6 +4,7 @@ package com.demo.dronebackend.controller;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
+import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
@@ -36,6 +37,17 @@ public class DeviceController {
     @DeleteMapping("/{id}")
     public Result<?> deleteDevice(@PathVariable String id) {
         return deviceService.removeById(id) ? Result.success("删除成功") : Result.error("删除失败");
+    }
+
+    /**
+     * 批量删除设备
+     * @param req
+     * @return
+     */
+    @PostMapping("/batch_delete")
+    public Result<?> deleteBatch(
+            @Valid @RequestBody BatchDeleteRequest<Long> req) {
+        return deviceService.deleteBatch(req.getIds());
     }
 
 

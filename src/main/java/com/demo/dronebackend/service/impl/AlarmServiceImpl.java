@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -40,6 +42,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     @Override
     public Result<?> listAlarms(AlarmQuery q) {
         Page<Alarm> page = new Page<>(q.getPage(), q.getSize());
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         LambdaQueryWrapper<Alarm> qw = new LambdaQueryWrapper<>();
         if (q.getDroneId() != null) {
@@ -49,10 +52,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             qw.like(Alarm::getDroneModel, q.getDroneModel());
         }
         if (q.getStartTime() != null) {
-            qw.ge(Alarm::getTakeoffTime, q.getStartTime());
+            qw.ge(Alarm::getTakeoffTime, df.format(q.getStartTime()));
         }
         if (q.getEndTime() != null) {
-            qw.le(Alarm::getLandingTime, q.getEndTime());
+            qw.le(Alarm::getLandingTime, df.format(q.getEndTime()));
         }
         if (q.getStationId() != null) {
             qw.eq(Alarm::getStationId, q.getStationId());
@@ -62,7 +65,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         User me = CurrentUserContext.get();
-        if(PermissionType.admin.getDesc().equals( me.getPermission())){
+        if(!PermissionType.admin.getDesc().equals( me.getPermission())){
             Long userId = me.getId();
             qw.inSql(Alarm::getScanid,
                     "SELECT id FROM device WHERE device_user_id = " + userId);
@@ -135,6 +138,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> batchDelete(List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException("删除失败：ID 列表为空");
+        }
+        User user = CurrentUserContext.get();
+        if(!PermissionType.admin.getDesc().equals( user.getPermission())){
+            throw new BusinessException("权限不足");
         }
         int deleted = alarmMapper.deleteBatchIds(ids);
         if (deleted == 0) {

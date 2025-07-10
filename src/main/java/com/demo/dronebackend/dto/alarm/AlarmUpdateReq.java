@@ -3,8 +3,10 @@ package com.demo.dronebackend.dto.alarm;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
 public class AlarmUpdateReq {
@@ -12,8 +14,9 @@ public class AlarmUpdateReq {
     /**
      * 入侵开始时间（ISO8601 格式）
      */
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime intrusionTime;
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date intrusionTime;
 
     /**
      * 无人机型号
