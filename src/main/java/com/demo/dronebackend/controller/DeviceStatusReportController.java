@@ -1,9 +1,9 @@
 package com.demo.dronebackend.controller;
 
+import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.ws.WebSocketService;
-import lombok.Data;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+
 import java.util.Map;
 
 /**
@@ -32,23 +32,5 @@ public class DeviceStatusReportController {
         return Map.of("code", 200, "msg", "Success");
     }
 
-    @Data
-    // 设备状态上报数据结构
-    public static class StatusReport {
-        private String stationId;
-        private List<Scanner> scannerD;
 
-        @Data
-        public static class Scanner {
-            private String id;
-            private Integer linkState;
-            private Double dataRate;
-            private Integer foundTarget;
-            private Double lng;
-            private Double lat;
-            private String ip;
-            
-
-        }
-    }
 }

@@ -5,6 +5,11 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+
+/*
+主要负责在 WebSocket 连接生命周期中的几个关键时刻做一些自定义处理，
+并把连接的管理逻辑委托给 WebSocketService
+ */
 public class MyWebSocketHandler extends TextWebSocketHandler {
 
     private final WebSocketService webSocketService;
