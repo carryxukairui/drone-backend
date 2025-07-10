@@ -22,7 +22,7 @@ public class AlarmController {
 
 
     @GetMapping()
-    public Result<?> getAlarms(@Valid @RequestBody AlarmQuery query) {
+    public Result<?> getAlarms(@Valid @ModelAttribute AlarmQuery query) {
         return alarmService.listAlarms(query);
     }
 

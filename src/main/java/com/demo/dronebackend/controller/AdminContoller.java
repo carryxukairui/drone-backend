@@ -107,7 +107,7 @@ public class AdminContoller {
      * @param req 查询用户列表请求体
      */
     @GetMapping("/users")
-    public Result<?> listUsers(@Valid UserQueryReq req) {
+    public Result<?> listUsers(@Valid @ModelAttribute UserQueryReq req) {
         return userService.listUsers(req);
     }
 
