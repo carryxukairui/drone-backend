@@ -25,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/admin/users/login-pwd",
                         "/user/login-code",
                         "/user/send-code",
+                        "/screen/**",
                         "/sys/portable/status/**",
                         "/ws/**");
     }

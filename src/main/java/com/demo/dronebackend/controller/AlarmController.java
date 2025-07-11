@@ -1,7 +1,8 @@
 package com.demo.dronebackend.controller;
 
 
-import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.alarm.BatchDeleteRequest;
 import com.demo.dronebackend.exception.BusinessException;
@@ -24,7 +25,7 @@ public class AlarmController {
     @GetMapping()
     public Result<?> getAlarms(@Valid @ModelAttribute AlarmQueryReq req) {
         return alarmService.listAlarms(req);
-    }
+
 
 
     /*

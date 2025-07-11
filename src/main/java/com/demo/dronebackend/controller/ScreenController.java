@@ -1,13 +1,18 @@
 package com.demo.dronebackend.controller;
 
 
+import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
+import com.demo.dronebackend.service.DeviceService;
+import com.demo.dronebackend.ws.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/screen")
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ScreenController {
 
     private final AlarmService alarmService;
+    private final DeviceService deviceService;
 
     /**
      * 实时告警界面获取历史告警信息
@@ -27,11 +33,21 @@ public class ScreenController {
 
     /**
      * 获取飞行历史
+     *
      * @param query 查询参数
      * @return
      */
     @PostMapping("/flight/history")
-    public Result<?> historyList(@Valid @RequestBody FlightHistoryQuery query){
+    public Result<?> historyList(@Valid @RequestBody FlightHistoryQuery query) {
         return alarmService.historyList(query);
+    }
+
+    @PostMapping("/report")
+    public Map<String, Object> reportStatus(@RequestBody StatusReport report) {
+
+        System.out.println("Received device status: " + report);
+
+        // 3. 返回响应
+        return deviceService.websocketDevice(report);
     }
 }

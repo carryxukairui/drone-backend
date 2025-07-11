@@ -195,6 +195,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
+        System.out.println(req.getPhone());
         Page<User> page = new Page<>(req.getPage(), req.getSize());
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(req.getName())) {

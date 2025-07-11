@@ -1,14 +1,12 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.demo.dronebackend.dto.alarm.AlarmDTO;
-import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
+import com.demo.dronebackend.dto.alarm.AlarmDto;
+import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
-import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryDto;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.enums.PermissionType;
@@ -24,10 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.List;
 
 /**
 * @author 28611
@@ -107,10 +102,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             qw.like(Alarm::getDroneModel, q.getDroneModel());
         }
         if (q.getStartTime() != null) {
-            qw.ge(Alarm::getTakeoffTime, q.getStartTime());
+            qw.ge(Alarm::getTakeoffTime, df.format(q.getStartTime()));
         }
         if (q.getEndTime() != null) {
-            qw.le(Alarm::getLandingTime, q.getEndTime());
+            qw.le(Alarm::getLandingTime, df.format(q.getEndTime()));
         }
         if (q.getStationId() != null) {
             qw.eq(Alarm::getStationId, q.getStationId());
@@ -120,7 +115,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         User me = CurrentUserContext.get();
-        if(PermissionType.admin.getDesc().equals( me.getPermission())){
+        if(!PermissionType.admin.getDesc().equals( me.getPermission())){
             Long userId = me.getId();
             qw.inSql(Alarm::getScanid,
                     "SELECT id FROM device WHERE device_user_id = " + userId);
@@ -193,6 +188,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> batchDelete(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException("删除失败：ID 列表为空");
+        }
+        User user = CurrentUserContext.get();
+        if(!PermissionType.admin.getDesc().equals( user.getPermission())){
+            throw new BusinessException("权限不足");
         }
         int deleted = alarmMapper.deleteBatchIds(ids);
         if (deleted == 0) {

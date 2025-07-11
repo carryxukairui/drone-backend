@@ -6,9 +6,10 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
-public class AlarmQueryReq {
+public class AlarmQuery {
 
     /** 页码，默认 1 */
     @Min(value = 1, message = "page 必须 ≥ 1")
@@ -25,14 +26,14 @@ public class AlarmQueryReq {
     private String droneModel;
 
     /** 起飞时间 ≥ startTime */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date startTime;
 
     /** 降落时间 ≤ endTime */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date endTime;
 
     /** 防区 ID */
     private Long stationId;

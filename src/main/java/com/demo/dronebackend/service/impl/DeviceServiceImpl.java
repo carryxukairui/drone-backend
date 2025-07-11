@@ -5,6 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
+import com.demo.dronebackend.dto.hardware.Scanner;
+import com.demo.dronebackend.dto.hardware.StatusReport;
+import com.demo.dronebackend.dto.screen.DeviceDTO;
+import com.demo.dronebackend.dto.screen.DeviceListDTO;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.DeviceMapper;
@@ -14,11 +18,15 @@ import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.util.CurrentUserContext;
+import com.demo.dronebackend.ws.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author 28611
@@ -31,6 +39,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     implements DeviceService{
 
     private final DeviceMapper deviceMapper;
+    private final WebSocketService webSocketService;
 
     @Override
     public Result<?> addDevice(DeviceReq req) {
@@ -114,6 +123,42 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
         return Result.success( null);
+    }
+
+    @Override
+    public Map<String ,Object> websocketDevice(StatusReport report) {
+        // 1. 收集所有上报里的设备ID
+        List<String> deviceIds = report.getScannerD()
+                .stream()
+                .map(Scanner::getId)
+                .toList();
+
+        List<Device> devices = deviceMapper.selectBatchIds(deviceIds);
+
+        Map<String, List<DeviceDTO>> dtoByUser = new HashMap<>();
+        for (Device dev : devices) {
+            String userId = String.valueOf(dev.getDeviceUserId());
+
+            DeviceDTO dto = new DeviceDTO();
+            dto.setDeviceId(dev.getId());
+            dto.setDeviceName(dev.getDeviceName());
+            dto.setCoverRange(dev.getCoverRange());
+            dto.setPower(dev.getPower());
+            dto.setLinkStatus(dev.getLinkStatus());
+            //TODO：接入api获取位置信息
+            dto.setLocation("详细地址");
+            // 加入到对应用户的列表
+            dtoByUser.computeIfAbsent(userId, k -> new ArrayList<>())
+                    .add(dto);
+        }
+        // 4. 分用户推送：为每个用户构造子报告并发送
+        dtoByUser.forEach((userId, listOfDto) -> {
+            DeviceListDTO payload = new DeviceListDTO();
+            payload.setDevices(listOfDto);
+            webSocketService.sendDeviceListToUser(userId, payload);
+        });
+
+        return Map.of("code", 200, "msg", "Success");
     }
 
 }

@@ -19,7 +19,7 @@ public class UserQueryReq {
 
     private String name;
 
-    @Pattern(regexp = PHONE_REGEX, message = "手机号格式不正确")
+//    @Pattern(regexp = PHONE_REGEX, message = "手机号格式不正确")
     private String phone;
 
     private String permission;
