@@ -145,6 +145,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setCoverRange(dev.getCoverRange());
             dto.setPower(dev.getPower());
             dto.setLinkStatus(dev.getLinkStatus());
+            dto.setDeviceType(dev.getDeviceType());
             //TODO：接入api获取位置信息
             dto.setLocation("详细地址");
             // 加入到对应用户的列表
@@ -152,11 +153,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
                     .add(dto);
         }
         // 4. 分用户推送：为每个用户构造子报告并发送
-        dtoByUser.forEach((userId, listOfDto) -> {
-            DeviceListDTO payload = new DeviceListDTO();
-            payload.setDevices(listOfDto);
-            webSocketService.sendDeviceListToUser(userId, payload);
-        });
+        dtoByUser.forEach(webSocketService::sendDeviceListToUser);
 
         return Map.of("code", 200, "msg", "Success");
     }
