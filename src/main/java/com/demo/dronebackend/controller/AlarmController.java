@@ -1,8 +1,7 @@
 package com.demo.dronebackend.controller;
 
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.demo.dronebackend.dto.alarm.AlarmQuery;
+import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.alarm.BatchDeleteRequest;
 import com.demo.dronebackend.exception.BusinessException;
@@ -18,12 +17,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("admin/alarms")
 @RequiredArgsConstructor
 public class AlarmController {
+
     private final AlarmService alarmService;
 
 
     @GetMapping()
-    public Result<?> getAlarms(@Valid AlarmQuery query) {
-        return alarmService.listAlarms(query);
+    public Result<?> getAlarms(@Valid @ModelAttribute AlarmQueryReq req) {
+        return alarmService.listAlarms(req);
     }
 
 

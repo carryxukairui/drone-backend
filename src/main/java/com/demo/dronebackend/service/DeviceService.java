@@ -6,6 +6,8 @@ import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
 * @author 28611
 * @description 针对表【device(设备表)】的数据库操作Service
@@ -18,4 +20,6 @@ public interface DeviceService extends IService<Device> {
     Result<?> updateDevice(DeviceReq req);
 
     Result<?> listDevices(DeviceQuery query);
+
+    Result<?> deleteBatch(List<Long> ids);
 }

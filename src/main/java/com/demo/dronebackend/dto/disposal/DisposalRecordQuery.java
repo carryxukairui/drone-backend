@@ -1,5 +1,6 @@
 package com.demo.dronebackend.dto.disposal;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,10 +22,12 @@ public class DisposalRecordQuery {
     private Long deviceId;
 
     /** 反制开始时间 ≥ counterStart */
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime counterStart;
 
     /** 反制结束时间 ≤ counterEnd */
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime counterEnd;
 }

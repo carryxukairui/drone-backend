@@ -2,13 +2,13 @@ package com.demo.dronebackend.dto.alarm;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
-public class AlarmDto {
-    private String id;
+public class AlarmDTO {
+    private Long id;
     private String droneModel;
-    private LocalDateTime intrusionTime;
+    private Date intrusionTime;
     private String location;
     private String type;
     private String droneSn;

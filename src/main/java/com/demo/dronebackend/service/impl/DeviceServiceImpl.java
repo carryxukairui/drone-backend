@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.enums.PermissionType;
+import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
@@ -16,6 +17,8 @@ import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 /**
 * @author 28611
@@ -100,6 +103,19 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         MyPage<Device> myPage = new MyPage<>(devicePage);
         return Result.success(myPage);
     }
+
+    @Override
+    public Result<?> deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException("删除失败：ID 列表为空");
+        }
+        int r = deviceMapper.deleteBatchIds(ids);
+        if (r == 0) {
+            throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
+        }
+        return Result.success( null);
+    }
+
 }
 
 

@@ -1,7 +1,12 @@
 package com.demo.dronebackend.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.demo.dronebackend.model.MyPage;
+import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Drone;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
 * @author 28611
@@ -10,4 +15,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface DroneService extends IService<Drone> {
 
+   Result<Page<Drone>> getDroneList(Integer currentPage,Integer pageSize,String droneBrand,String droneModel,String droneSn,String type,Long userId);
+   Result<Drone> getDroneById(Long id);
+   Result<Drone> addDrone(Drone drone);
+   Result<Drone> updateDrone(Drone drone);
+   Result deleteDrone(Long id);
+   Result deleteDroneBatch(Long[] ids);
 }

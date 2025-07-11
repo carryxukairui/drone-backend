@@ -1,7 +1,8 @@
 package com.demo.dronebackend.service;
 
-import com.demo.dronebackend.dto.alarm.AlarmQuery;
+import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
@@ -11,19 +12,26 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
-* @author 28611
-* @description 针对表【alarm(告警信息表)】的数据库操作Service
-* @createDate 2025-07-07 09:44:52
-*/
+ * 告警信息Service
+ */
 public interface AlarmService extends IService<Alarm> {
 
-    Result<?> listAlarms(AlarmQuery query);
+    /**
+     * 驾驶舱-实时告警
+     */
+    Result<?> realtimeAlarms(RealtimeAlarmReq req);
+
+
+    /**
+     * 系统管理-感知记录管理
+     */
+    Result<?> listAlarms(AlarmQueryReq req);
 
     Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) throws BusinessException;
 
     Result<?> deleteAlarm(Long alarmId) throws BusinessException;
 
-    Result<?> batchDelete(List<String> ids);
+    Result<?> batchDelete(List<Long> ids);
 
     Result<?> historyList(FlightHistoryQuery query);
 }

@@ -24,5 +24,11 @@ public class SystemConstants {
      */
     public static final String INITIAL_PASSWORD = "zhouhedikong123456";
 
+    /**
+     *
+     * 请求体的satoken
+     */
+    public static final String SA_TOKEN = "satoken";
+
 
 }

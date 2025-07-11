@@ -1,12 +1,14 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.demo.dronebackend.dto.alarm.AlarmDto;
-import com.demo.dronebackend.dto.alarm.AlarmQuery;
+import com.demo.dronebackend.dto.alarm.AlarmDTO;
+import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryDto;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.enums.PermissionType;
@@ -22,7 +24,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
 * @author 28611
@@ -38,14 +43,67 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
 
     @Override
-    public Result<?> listAlarms(AlarmQuery q) {
+    public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
+        int page = req.getPage();
+        int size = req.getSize();
+        int sizeLimit = req.getSize_limit();
+
+        // 查询原始告警 + 黑白名单类型
+        List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
+                req.getStartTime(),
+                req.getEndTime(),
+                req.getDroneModel(),
+                req.getType(),
+                sizeLimit * 10 // 查询多一点保证去重后能满足数量
+        );
+
+        // 转换成DTO
+        List<AlarmDTO> allDtos = rawList.stream().map(row -> {
+            AlarmDTO dto = new AlarmDTO();
+            dto.setId(((Number) row.get("id")).longValue());
+            dto.setDroneModel((String) row.get("drone_model"));
+            dto.setDroneSn((String) row.get("drone_sn"));
+            dto.setType((String) row.get("drone_type"));
+            dto.setIntrusionTime((Timestamp) row.get("intrusion_start_time"));
+            float lastLongitude = ((Number) row.get("last_longitude")).floatValue();
+            float lastLatitude = ((Number) row.get("last_latitude")).floatValue();
+            // todo 经纬度转换
+            dto.setLocation("未知");
+            return dto;
+        }).toList();
+
+        // 去重（drone_sn 保留最新 intrusion_time 一条）
+        LinkedHashMap<String, AlarmDTO> deduped = new LinkedHashMap<>();
+        allDtos.stream()
+                .sorted(Comparator.comparing(AlarmDTO::getIntrusionTime).reversed())
+                .forEach(dto -> deduped.putIfAbsent(dto.getDroneSn(), dto));
+
+        List<AlarmDTO> dedupedList = new ArrayList<>(deduped.values());
+
+        // 分页
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, dedupedList.size());
+        List<AlarmDTO> pagedList = fromIndex >= dedupedList.size() ? Collections.emptyList() : dedupedList.subList(fromIndex, toIndex);
+
+        MyPage<AlarmDTO> myPage = new MyPage<>();
+        myPage.setCurrent(page);
+        myPage.setSize(size);
+        myPage.setTotal(dedupedList.size());
+        myPage.setPages((long) Math.ceil((double) dedupedList.size() / size));
+        myPage.setRecords(pagedList);
+        return Result.success(myPage);
+    }
+
+    @Override
+    public Result<?> listAlarms(AlarmQueryReq q) {
         Page<Alarm> page = new Page<>(q.getPage(), q.getSize());
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         LambdaQueryWrapper<Alarm> qw = new LambdaQueryWrapper<>();
         if (q.getDroneId() != null) {
             qw.eq(Alarm::getDroneId, q.getDroneId());
         }
-        if (StringUtils.hasText(q.getDroneModel())) {
+        if (StrUtil.isNotBlank(q.getDroneModel())) {
             qw.like(Alarm::getDroneModel, q.getDroneModel());
         }
         if (q.getStartTime() != null) {
@@ -69,9 +127,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
-        List<AlarmDto> dtoList = alarmPage.getRecords().stream().map(a -> {
-            AlarmDto dto = new AlarmDto();
-            dto.setId(String.valueOf(a.getId()));
+        List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
+            AlarmDTO dto = new AlarmDTO();
+            dto.setId(a.getId());
             dto.setDroneModel(a.getDroneModel());
             dto.setIntrusionTime(a.getIntrusionStartTime());
             // TODO:接入对应的位置信息api接口获取
@@ -82,7 +140,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             return dto;
         }).toList();
 
-        MyPage<AlarmDto> resultPage = new MyPage<>(
+        MyPage<AlarmDTO> resultPage = new MyPage<>(
                 alarmPage.getCurrent(),
                 alarmPage.getPages(),
                 alarmPage.getSize(),
@@ -132,7 +190,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     }
 
     @Override
-    public Result<?> batchDelete(List<String> ids) {
+    public Result<?> batchDelete(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException("删除失败：ID 列表为空");
         }

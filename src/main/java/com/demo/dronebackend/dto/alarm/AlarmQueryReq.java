@@ -1,5 +1,6 @@
 package com.demo.dronebackend.dto.alarm;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -7,7 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Data
-public class AlarmQuery {
+public class AlarmQueryReq {
 
     /** 页码，默认 1 */
     @Min(value = 1, message = "page 必须 ≥ 1")
@@ -24,11 +25,13 @@ public class AlarmQuery {
     private String droneModel;
 
     /** 起飞时间 ≥ startTime */
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
     /** 降落时间 ≤ endTime */
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
     /** 防区 ID */

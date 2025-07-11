@@ -5,8 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Result<T> {
     private Integer code;
     private String message;
@@ -23,7 +23,7 @@ public class Result<T> {
         return new Result<>(200, "", data);
     }
     public static <T> Result<T> error(String msg) {
-        return new Result<T>(1, msg, null);
+        return new Result<T>(400, msg, null);
     }
     //查询 成功响应
     public static <T> Result<T> success(String msg ,T data) {

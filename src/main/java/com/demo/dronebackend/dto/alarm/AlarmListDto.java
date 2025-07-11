@@ -8,5 +8,5 @@ import java.util.List;
 
 @Data
 public class AlarmListDto {
-    private List<AlarmDto> records;
+    private List<AlarmDTO> records;
 }
