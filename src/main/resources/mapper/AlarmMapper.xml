@@ -45,4 +45,12 @@
         back_latitude,pilot_longitude,pilot_latitude,
         trajectory,station_id,detect_type
     </sql>
+
+    <select id="getWeeklyDistribution" resultType="com.demo.dronebackend.dto.screen.WeekDroneStatsDTO">
+        SELECT DATE(intrusion_start_time) AS day,
+            COUNT(DISTINCT drone_sn)       AS count
+        FROM alarm
+        WHERE intrusion_start_time BETWEEN #{start} AND #{end}
+        GROUP BY DATE(intrusion_start_time)
+    </select>
 </mapper>

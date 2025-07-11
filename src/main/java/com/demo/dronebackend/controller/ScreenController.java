@@ -72,4 +72,32 @@ public class ScreenController {
                                          @RequestParam(value = "size",defaultValue = "10") Integer size) {
         return deviceService.listDisposalRecords(page,size);
     }
+
+
+
+
+    @GetMapping("stats/distribution/hour")
+    public Result<?> getHourlyDistribution() {
+        return alarmService.getHourlyDistribution();
+    }
+
+    @GetMapping("stats/distribution/week")
+    public Result<?> getWeeklyDistribution() {
+        return alarmService.getWeeklyDistribution();
+    }
+
+    @GetMapping("stats/distribution/month")
+    public Result<?> getMonthlyDistribution() {
+        return alarmService.getMonthlyDistribution();
+    }
+
+    @GetMapping("stats/distribution/year")
+    public Result<?> getYearDistribution() {
+        return alarmService.getYearDistribution();
+    }
+
+    @GetMapping("stats/distribution/all-drone")
+    public Result<?> getAllDroneDistribution() {
+        return alarmService.getAllDroneDistribution();
+    }
 }

@@ -7,13 +7,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.alarm.AlarmDto;
 import com.demo.dronebackend.dto.alarm.AlarmQuery;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
-import com.demo.dronebackend.dto.screen.FlightHistoryDto;
-import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
+import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
+import com.demo.dronebackend.pojo.DateCount;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.mapper.AlarmMapper;
@@ -25,7 +25,16 @@ import org.springframework.util.StringUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
 * @author 28611
@@ -218,6 +227,101 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         return Result.success(new MyPage<>(
                 pr.getCurrent(), pr.getPages(),
                 pr.getSize(), pr.getTotal(), dtoList));
+    }
+
+    @Override
+    public Result<?> getHourlyDistribution() {
+        long userId = StpUtil.getLoginIdAsLong();
+        LocalDate today = LocalDate.now();
+        ZoneId zone = ZoneId.systemDefault();
+        Date start = Date.from(today.atStartOfDay(zone).toInstant());
+        Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
+
+        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end,userId);
+
+        Map<Integer,Long> map = raw.stream()
+                .collect(Collectors.toMap(
+                        HourlyDroneStaDTO::getHour,
+                        HourlyDroneStaDTO::getCount
+                ));
+
+        List<HourlyDroneStaDTO> stats = new ArrayList<>(24);
+        for (int i = 0; i < 24; i++) {
+            stats.add(new HourlyDroneStaDTO(i, map.getOrDefault(i, 0L)));
+        }
+        return Result.success( stats);
+    }
+
+
+    @Override
+    public Result<?> getWeeklyDistribution() {
+        long userId = StpUtil.getLoginIdAsLong();
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        ZoneId zone = ZoneId.systemDefault();
+
+        Date start = Date.from(monday.atStartOfDay(zone).toInstant());
+        Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
+
+        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end,userId);
+
+        // 转换结果时直接使用 getter 方法
+        Map<LocalDate, Long> map = raw.stream()
+                .collect(Collectors.toMap(
+                        dc -> dc.getStatDate().toInstant().atZone(zone).toLocalDate(),
+                        DateCount::getCnt
+                ));
+
+        List<WeekDroneStatsDTO> stats = new ArrayList<>(7);
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = monday.plusDays(i);
+            String dayCode = String.format("%02d", date.getDayOfWeek().getValue());
+
+            long cnt = !date.isAfter(today)
+                    ? map.getOrDefault(date, 0L)
+                    : 0L;
+
+            stats.add(new WeekDroneStatsDTO(dayCode, cnt));
+        }
+
+        return Result.success(stats);
+    }
+
+
+    @Override
+    public Result<?> getMonthlyDistribution() {
+        long userId = StpUtil.getLoginIdAsLong();
+        List<MonthDroneStatsDTO> raw = alarmMapper.countByMonth(userId);
+
+        Map<String, Long> monthMap = raw.stream()
+                .collect(Collectors.toMap(
+                        MonthDroneStatsDTO::getMonth,
+                        MonthDroneStatsDTO::getCount
+                ));
+        System.out.println("monthMap:"+monthMap);
+
+        List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
+        for (int m = 1; m <= 12; m++) {
+            String monthStr = String.format("%02d", m);
+            long count = monthMap.getOrDefault(monthStr, 0L);
+            stats.add(new MonthDroneStatsDTO(monthStr, count));
+        }
+
+        return Result.success(stats);
+    }
+
+    @Override
+    public Result<?> getYearDistribution() {
+        long userId = StpUtil.getLoginIdAsLong();
+        long count = alarmMapper.getYearDistribution(userId);
+        return Result.success( count);
+    }
+
+    @Override
+    public Result<?> getAllDroneDistribution() {
+        long userId = StpUtil.getLoginIdAsLong();
+        long count = alarmMapper.getAllDroneDistribution(userId);
+        return Result.success( count);
     }
 }
 
