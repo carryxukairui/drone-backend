@@ -17,6 +17,7 @@ import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.mapper.AlarmMapper;
+import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     implements AlarmService{
 
     private final AlarmMapper alarmMapper;
+    private final TiandituService tiandituService;
 
 
     @Override
@@ -73,13 +75,13 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
         List<AlarmDto> dtoList = alarmPage.getRecords().stream().map(a -> {
+            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
+
             AlarmDto dto = new AlarmDto();
             dto.setId(String.valueOf(a.getId()));
             dto.setDroneModel(a.getDroneModel());
             dto.setIntrusionTime(a.getIntrusionStartTime());
-            // TODO:接入对应的位置信息api接口获取
-            dto.setLocation("地址");
-
+            dto.setLocation(location);
             dto.setType(a.getDroneType());
             dto.setDroneSn(a.getDroneSn());
             return dto;

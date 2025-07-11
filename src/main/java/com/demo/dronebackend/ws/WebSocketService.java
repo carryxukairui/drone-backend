@@ -1,5 +1,6 @@
 package com.demo.dronebackend.ws;
 
+import com.demo.dronebackend.constant.DeviceType;
 import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceDTO;
 import com.demo.dronebackend.dto.screen.DeviceListDTO;
@@ -73,7 +74,7 @@ public class WebSocketService {
             if (!session.isOpen()) continue;
 
             UserPref pref = (UserPref) session.getAttributes().get("USER_PREF");
-            if (pref == null) pref = new UserPref("TDOA", 1, 10);
+            if (pref == null) pref = new UserPref(DeviceType.TDOA, 1, 10);
 
             // 过滤
             Stream<DeviceDTO> stream = allDtos.stream();

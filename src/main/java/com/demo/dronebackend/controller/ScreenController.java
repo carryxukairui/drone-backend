@@ -2,17 +2,14 @@ package com.demo.dronebackend.controller;
 
 
 import com.demo.dronebackend.dto.hardware.StatusReport;
+import com.demo.dronebackend.dto.screen.DeviceSettingReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.ws.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -35,6 +32,11 @@ public class ScreenController {
         return alarmService.historyList(query);
     }
 
+    /**
+     * websocket获取硬件数据
+     * @param report
+     * @return
+     */
     @PostMapping("/report")
     public Map<String, Object> reportStatus(@RequestBody StatusReport report) {
 
@@ -42,5 +44,32 @@ public class ScreenController {
 
         // 3. 返回响应
         return deviceService.websocketDevice(report);
+    }
+
+
+    /**
+     *  获取远程设备详情页
+     *
+     */
+    @GetMapping("/devices/{id}")
+    public Result<?> getDeviceDetail(@PathVariable("id") String deviceId) {
+        return deviceService.getDeviceDetail(deviceId);
+    }
+
+    /**
+     * 提交反制参数设置
+     */
+    @PostMapping("/devices/{id}/param-settings")
+    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId, @RequestBody DeviceSettingReq paramSettings) {
+        return deviceService.updateDeviceParamSettings(deviceId, paramSettings);
+    }
+
+    /**
+     * 获取处置列表及分页展示
+     */
+    @GetMapping("/devices/disposal-records")
+    public Result<?> listDisposalRecords(@RequestParam(value = "page",defaultValue = "1") Integer page,
+                                         @RequestParam(value = "size",defaultValue = "10") Integer size) {
+        return deviceService.listDisposalRecords(page,size);
     }
 }
