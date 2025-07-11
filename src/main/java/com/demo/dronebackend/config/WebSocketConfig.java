@@ -32,7 +32,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(myHandler(), "/ws")
+        registry.addHandler(myHandler(), "/ws/device")
                 .addInterceptors(new HandshakeInterceptor() {
                     @Override
                     public boolean beforeHandshake(ServerHttpRequest request,
@@ -49,11 +49,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                             token = httpReq.getParameter(SystemConstants.SA_TOKEN);
                         }
 
-                        // 3. 如果你拦截器在 Sa‑Token 过滤器之后执行，也可以直接：
-                        //    StpUtil.checkLogin();
-                        //    String loginId = StpUtil.getLoginIdAsString();
-                        //
-                        //    这里为了保险，我们显式用 token 登录态校验：
+
                         StpUtil.checkLogin();                // 校验：没登录会抛异常
                         String loginId = StpUtil.getLoginIdByToken(token).toString();
 
@@ -67,7 +63,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                ServerHttpResponse response,
                                                WebSocketHandler wsHandler,
                                                Exception exception) {
-                        // 握手完成后，不需要额外操作
                     }
                 })
                 .setAllowedOrigins("*");

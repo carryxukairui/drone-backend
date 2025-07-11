@@ -1,5 +1,7 @@
 package com.demo.dronebackend.ws;
 import com.demo.dronebackend.ws.WebSocketService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -13,7 +15,7 @@ import java.io.IOException;
 并把连接的管理逻辑委托给 WebSocketService
  */
 public class MyWebSocketHandler extends TextWebSocketHandler {
-
+    private static final String PREF_ATTR = "USER_PREF";
     private final WebSocketService webSocketService;
 
     public MyWebSocketHandler(WebSocketService webSocketService) {
@@ -26,6 +28,8 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
             // 2. 按用户添加到 service
+            // 初始化默认偏好：不过滤、page=1、size=10
+            session.getAttributes().put(PREF_ATTR, new WebSocketService.UserPref("TDOA", 1, 10));
             webSocketService.addSession(userId, session);
             System.out.println("Connection established for user " + userId + ": " + session.getId());
         } else {
@@ -46,10 +50,29 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-        // 可以处理客户端发来的消息
-        System.out.println("Received from client ("
-                + session.getAttributes().get("userId") + "): "
-                + message.getPayload());
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
+        JsonNode json = new ObjectMapper().readTree(message.getPayload());
+
+        WebSocketService.UserPref pref =
+                (WebSocketService.UserPref) session.getAttributes().get(PREF_ATTR);
+        if (pref == null) {
+            pref = new WebSocketService.UserPref(null, 1, 10);
+        }
+
+        // 前端只需发送 { deviceType, page, size } 中任意字段
+        if (json.has("deviceType")) {
+            pref.setDeviceType(json.get("deviceType").asText());
+        }
+        if (json.has("page")) {
+            pref.setPage(json.get("page").asInt());
+        }
+        if (json.has("size")) {
+            pref.setSize(json.get("size").asInt());
+        }
+        // 写回 session attributes（其实对象是同一个）
+        session.getAttributes().put(PREF_ATTR, pref);
+
+        // 更新偏好后立即推一次
+        webSocketService.pushToSession(session);
     }
 }

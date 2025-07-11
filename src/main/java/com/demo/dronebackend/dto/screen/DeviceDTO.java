@@ -10,4 +10,5 @@ public class DeviceDTO{
     private Double power;
     private Integer linkStatus;
     private String location;
+    private String deviceType;
 }
