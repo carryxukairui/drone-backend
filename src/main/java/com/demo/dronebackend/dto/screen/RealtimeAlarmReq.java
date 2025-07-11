@@ -1,4 +1,4 @@
-package com.demo.dronebackend.dto.alarm;
+package com.demo.dronebackend.dto.screen;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;

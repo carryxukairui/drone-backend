@@ -7,7 +7,6 @@ import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.service.MqttService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class DeviceController {
     private final DeviceService deviceService;
-    private final MqttService mqttService;
     private static final String topic = "device/command/startJam";
 
 
@@ -78,16 +76,11 @@ public class DeviceController {
         //把command转化为json字符串
         ObjectMapper mapper = new ObjectMapper();
         String message = mapper.writeValueAsString(command);
-        mqttService.publish(topic, message);
         return "Published to topic: " + topic+" : "+message;
     }
 
     @GetMapping("/subscribe")
     public String subscribe(@RequestParam String topic) throws Exception {
-        mqttService.subscribe(topic, (topic1, msg) -> {
-            String payload = new String(msg.getPayload());
-            System.out.println("Received from [" + topic1 + "] : " + payload);
-        });
         return "Subscribed to topic: " + topic;
     }
 }

@@ -1,14 +1,17 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.demo.dronebackend.dto.alarm.AlarmDto;
-import com.demo.dronebackend.dto.alarm.AlarmQuery;
+import com.demo.dronebackend.dto.alarm.AlarmDTO;
+import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryDto;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
+import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
+import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.MyPage;
@@ -22,7 +25,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
 * @author 28611
@@ -53,8 +59,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         );
 
         // 转换成DTO
-        List<AlarmDTO> allDtos = rawList.stream().map(row -> {
-            AlarmDTO dto = new AlarmDTO();
+        List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
+            RealTimeAlarmDTO dto = new RealTimeAlarmDTO();
             dto.setId(((Number) row.get("id")).longValue());
             dto.setDroneModel((String) row.get("drone_model"));
             dto.setDroneSn((String) row.get("drone_sn"));
@@ -68,19 +74,19 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }).toList();
 
         // 去重（drone_sn 保留最新 intrusion_time 一条）
-        LinkedHashMap<String, AlarmDTO> deduped = new LinkedHashMap<>();
+        LinkedHashMap<String, RealTimeAlarmDTO> deduped = new LinkedHashMap<>();
         allDtos.stream()
-                .sorted(Comparator.comparing(AlarmDTO::getIntrusionTime).reversed())
+                .sorted(Comparator.comparing(RealTimeAlarmDTO::getIntrusionTime).reversed())
                 .forEach(dto -> deduped.putIfAbsent(dto.getDroneSn(), dto));
 
-        List<AlarmDTO> dedupedList = new ArrayList<>(deduped.values());
+        List<RealTimeAlarmDTO> dedupedList = new ArrayList<>(deduped.values());
 
         // 分页
         int fromIndex = (page - 1) * size;
         int toIndex = Math.min(fromIndex + size, dedupedList.size());
-        List<AlarmDTO> pagedList = fromIndex >= dedupedList.size() ? Collections.emptyList() : dedupedList.subList(fromIndex, toIndex);
+        List<RealTimeAlarmDTO> pagedList = fromIndex >= dedupedList.size() ? Collections.emptyList() : dedupedList.subList(fromIndex, toIndex);
 
-        MyPage<AlarmDTO> myPage = new MyPage<>();
+        MyPage<RealTimeAlarmDTO> myPage = new MyPage<>();
         myPage.setCurrent(page);
         myPage.setSize(size);
         myPage.setTotal(dedupedList.size());

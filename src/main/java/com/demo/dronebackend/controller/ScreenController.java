@@ -2,16 +2,14 @@ package com.demo.dronebackend.controller;
 
 
 import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
+import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.ws.WebSocketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 
 @RestController
@@ -21,6 +19,7 @@ public class ScreenController {
 
     private final AlarmService alarmService;
     private final DeviceService deviceService;
+
 
     /**
      * 实时告警界面获取历史告警信息

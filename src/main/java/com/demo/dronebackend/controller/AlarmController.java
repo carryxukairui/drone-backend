@@ -1,17 +1,13 @@
 package com.demo.dronebackend.controller;
 
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.demo.dronebackend.dto.alarm.AlarmQuery;
+import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.alarm.BatchDeleteRequest;
-import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
-import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.service.AlarmService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,7 +21,7 @@ public class AlarmController {
     @GetMapping()
     public Result<?> getAlarms(@Valid @ModelAttribute AlarmQueryReq req) {
         return alarmService.listAlarms(req);
-
+    }
 
 
     /*

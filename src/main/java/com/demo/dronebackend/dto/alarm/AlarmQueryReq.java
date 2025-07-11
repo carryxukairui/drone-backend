@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
-public class AlarmQuery {
+public class AlarmQueryReq {
 
     /** 页码，默认 1 */
     @Min(value = 1, message = "page 必须 ≥ 1")

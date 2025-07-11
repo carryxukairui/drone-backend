@@ -2,7 +2,7 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
-import com.demo.dronebackend.dto.alarm.RealtimeAlarmReq;
+import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.Result;
