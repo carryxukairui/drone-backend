@@ -24,6 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/admin/users/login-pwd",
                         "/user/login-code",
                         "/user/send-code",
+                        "/screen/**",
                         "/sys/portable/status/**");
     }
 

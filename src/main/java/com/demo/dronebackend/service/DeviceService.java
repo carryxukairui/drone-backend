@@ -2,11 +2,13 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
+import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author 28611
@@ -22,4 +24,6 @@ public interface DeviceService extends IService<Device> {
     Result<?> listDevices(DeviceQuery query);
 
     Result<?> deleteBatch(List<Long> ids);
+
+    Map<String,Object> websocketDevice(StatusReport report);
 }
