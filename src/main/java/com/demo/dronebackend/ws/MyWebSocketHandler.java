@@ -1,4 +1,6 @@
 package com.demo.dronebackend.ws;
+
+import com.demo.dronebackend.constant.DeviceType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.CloseStatus;
@@ -28,7 +30,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         if (userId != null) {
             // 2. 按用户添加到 service
             // 初始化默认偏好：不过滤、page=1、size=10
-            session.getAttributes().put(PREF_ATTR, new WebSocketService.UserPref("TDOA", 1, 10));
+            session.getAttributes().put(PREF_ATTR, new WebSocketService.UserPref(DeviceType.TDOA, 1, 10));
             webSocketService.addSession(userId, session);
             System.out.println("Connection established for user " + userId + ": " + session.getId());
         } else {

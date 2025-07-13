@@ -1,5 +1,7 @@
 package com.demo.dronebackend.ws;
 
+import com.demo.dronebackend.constant.DeviceType;
+import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceDTO;
 import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
 import com.demo.dronebackend.model.MyPage;
@@ -44,7 +46,9 @@ public class WebSocketService {
      * 添加某个用户的新会话
      */
     public void addSession(String userId, WebSocketSession session) {
-        sessionsByUser.computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>()).add(session);
+        sessionsByUser
+                .computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>())
+                .add(session);
     }
 
     /**
@@ -73,7 +77,7 @@ public class WebSocketService {
             if (!session.isOpen()) continue;
 
             UserPref pref = (UserPref) session.getAttributes().get("USER_PREF");
-            if (pref == null) pref = new UserPref("TDOA", 1, 10);
+            if (pref == null) pref = new UserPref(DeviceType.TDOA, 1, 10);
 
             // 过滤
             Stream<DeviceDTO> stream = allDtos.stream();

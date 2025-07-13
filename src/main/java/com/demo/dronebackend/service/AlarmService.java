@@ -41,4 +41,14 @@ public interface AlarmService extends IService<Alarm> {
 
     Result<?> historyList(FlightHistoryQuery query);
 
+    Result<?> getHourlyDistribution();
+
+    Result<?> getWeeklyDistribution();
+
+    Result<?> getMonthlyDistribution();
+
+    Result<?> getYearDistribution();
+
+    Result<?> getAllDroneDistribution();
+
 }

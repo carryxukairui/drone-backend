@@ -3,6 +3,7 @@ package com.demo.dronebackend.service;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.hardware.StatusReport;
+import com.demo.dronebackend.dto.screen.DeviceSettingReq;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -26,4 +27,10 @@ public interface DeviceService extends IService<Device> {
     Result<?> deleteBatch(List<Long> ids);
 
     Map<String,Object> websocketDevice(StatusReport report);
+
+    Result<?> getDeviceDetail(String deviceId);
+
+    Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq parmSettings);
+
+    Result<?> listDisposalRecords(Integer page, Integer size);
 }

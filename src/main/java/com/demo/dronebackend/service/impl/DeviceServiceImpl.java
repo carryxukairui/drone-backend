@@ -1,5 +1,6 @@
 package com.demo.dronebackend.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -7,14 +8,16 @@ import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.hardware.Scanner;
 import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.dto.screen.DeviceDTO;
-import com.demo.dronebackend.dto.screen.DeviceListDTO;
+import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.DeviceMapper;
+import com.demo.dronebackend.mapper.DisposalRecordMapper;
+import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
+import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.util.CurrentUserContext;
@@ -23,10 +26,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
 * @author 28611
@@ -39,6 +40,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     implements DeviceService{
 
     private final DeviceMapper deviceMapper;
+    private final DisposalRecordMapper disposalRecordMapper;
+    private final UserMapper userMapper;
     private final WebSocketService webSocketService;
 
     @Override
@@ -156,6 +159,85 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dtoByUser.forEach(webSocketService::sendDeviceListToUser);
 
         return Map.of("code", 200, "msg", "Success");
+    }
+
+    @Override
+    public Result<?> getDeviceDetail(String deviceId) {
+        Device device = deviceMapper.selectById(deviceId);
+        if (device == null) {
+            return Result.error("设备不存在");
+        }
+
+        return Result.success(new DeviceDetailDTO(device));
+    }
+
+    @Override
+    public Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq parmaSettings) {
+        Device device = deviceMapper.selectById(deviceId);
+        if (device == null) {
+            return Result.error("设备不存在");
+        }
+
+        device.setPower(parmaSettings.getPower());
+        deviceMapper.updateById( device);
+
+        DisposalRecord disposalRecord = disposalRecordMapper.selectOne(new LambdaQueryWrapper<DisposalRecord>()
+                .eq(DisposalRecord::getDeviceId, deviceId));
+        disposalRecord.setG09Onoff(parmaSettings.getG09OnOff());
+        disposalRecord.setG16Onoff(parmaSettings.getG16OnOff());
+        disposalRecord.setG24Onoff(parmaSettings.getG24OnOff());
+        disposalRecord.setG58Onoff(parmaSettings.getG58OnOff());
+        disposalRecord.setDuration(parmaSettings.getDuration());
+        disposalRecordMapper.updateById(disposalRecord);
+
+        //TODO: 将设备修改信息通过MQTT发送给硬件
+
+        return Result.success(null);
+    }
+
+    @Override
+    public Result<?> listDisposalRecords(Integer page, Integer size) {
+        long userId = StpUtil.getLoginIdAsLong();
+        Page<DisposalRecord> pr  = new Page<>(page, size);
+        List<String> deviceIds = deviceMapper.selectList(
+                new LambdaQueryWrapper<Device>()
+                        .eq(Device::getDeviceUserId, userId)
+        ).stream().map(Device::getId).toList();
+
+        if(deviceIds.isEmpty()){
+            return Result.success(Collections.emptyList());
+        }
+
+        LambdaQueryWrapper<DisposalRecord> qw = new LambdaQueryWrapper<>();
+        qw.in(DisposalRecord::getDeviceId, deviceIds)
+                .orderByDesc(DisposalRecord::getTime);
+        Page<DisposalRecord> pageResult = disposalRecordMapper.selectPage(pr, qw);
+
+        List<DisposalRecordDto> dtoList = pageResult.getRecords().stream().map(r -> {
+            DisposalRecordDto dto = new DisposalRecordDto();
+            Device device = deviceMapper.selectById(r.getDeviceId());
+            dto.setId(r.getId());
+            dto.setOperator(userMapper.selectById(userId).getName());
+            dto.setDeviceName(device.getDeviceName());
+            dto.setDeviceType(device.getDeviceType());
+            dto.setCommandTime(
+                    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                            .format(r.getTime())
+            );
+            dto.setUnattended(r.getG09Onoff()); // 或者根据业务设定
+            // 拼接 switch 状态
+            dto.setSwitchStatus(r.getG09Onoff() ==1, r.getG16Onoff() == 1,
+                    r.getG24Onoff() == 1, r.getG58Onoff() == 1);
+            return dto;
+        }).toList();
+        MyPage<DisposalRecordDto> resultPage = new MyPage<>(
+                pageResult.getCurrent(),
+                pageResult.getPages(),
+                pageResult.getSize(),
+                pageResult.getTotal(),
+                dtoList
+        );
+        return Result.success(resultPage);
     }
 
 }
