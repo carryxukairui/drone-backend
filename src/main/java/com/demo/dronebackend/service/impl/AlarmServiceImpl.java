@@ -8,12 +8,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.screen.FlightHistoryDto;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.mapper.DeviceMapper;
+import com.demo.dronebackend.mapper.DroneMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
@@ -21,55 +24,123 @@ import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.util.CurrentUserContext;
+import com.demo.dronebackend.ws.WebSocketService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
-* @author 28611
-* @description 针对表【alarm(告警信息表)】的数据库操作Service实现
-* @createDate 2025-07-07 09:44:52
-*/
+ * @author 28611
+ * @description 针对表【alarm(告警信息表)】的数据库操作Service实现
+ * @createDate 2025-07-07 09:44:52
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
-    implements AlarmService{
+        implements AlarmService {
 
     private final AlarmMapper alarmMapper;
+    private final DeviceMapper deviceMapper;
+    private final WebSocketService webSocketService;
 
+    private RealtimeAlarmReq req;
+
+    @Override
+    public Result<?> handleDroneReport(DroneReport report) {
+        Alarm alarm = new Alarm();
+        alarm.setDroneModel(report.getDroneModel());
+        alarm.setLastLongitude(report.getLongitude());
+        alarm.setLastLatitude(report.getLatitude());
+        alarm.setLastAltitude(report.getHeight());
+        alarm.setTakeoffTime(report.getIntrusionStartTime());
+        Date landingTime = new Date(report.getIntrusionStartTime().getTime() + (long) (report.getLastingTime() * 1000));
+        alarm.setLandingTime(landingTime);
+        alarm.setIntrusionStartTime(report.getIntrusionStartTime());
+        alarm.setDroneId(report.getStationId());
+        alarm.setDroneSn(report.getDroneUUID());
+        alarm.setFrequency(report.getFrequency());
+        alarm.setBandwidth(report.getBandwidth());
+        alarm.setSpeed(report.getSpeed());
+        alarm.setHorizontalHeadingAngle(report.getHorizontalHeadingAngle());
+        alarm.setVerticalHeadingAngle(report.getVerticalHeadingAngle());
+        alarm.setType(report.getType());
+        alarm.setScanids(report.getScanId());
+        alarm.setScanid(report.getId());
+        alarm.setLastingTime(report.getLastingTime());
+        alarm.setBackLongitude(report.getBackLongitude());
+        alarm.setBackLatitude(report.getBackLatitude());
+        alarm.setTrajectory(report.getDrone());
+        alarm.setStationId(report.getStationId());
+        alarm.setDetectType(report.getDetectType());
+        this.save(alarm);
+        Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
+        if (userId == null) {
+            log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getId());
+            return Result.success("无可推送用户", null);
+        }
+        // 根据用户id获取最新告警集合
+        MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
+        // 推送到设备绑定用户
+        webSocketService.sendAlarmListToUser(userId,myPage);
+        return Result.success("推送成功", null);
+    }
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
+        this.req=req; // 第一次展示，同步展示条件参数
+        Long userId = StpUtil.getLoginIdAsLong();
+        MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
+        return Result.success(myPage);
+    }
+
+    /**
+     * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
+     * @param userId 用户id
+     * @return 自定义分页数据
+     */
+    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId){
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
-
         // 查询原始告警 + 黑白名单类型
         List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
                 req.getStartTime(),
                 req.getEndTime(),
                 req.getDroneModel(),
                 req.getType(),
+                userId,
                 sizeLimit * 10 // 查询多一点保证去重后能满足数量
         );
-
+        if (rawList.isEmpty()){
+            return new MyPage<RealTimeAlarmDTO>();
+        }
         // 转换成DTO
         List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
             RealTimeAlarmDTO dto = new RealTimeAlarmDTO();
             dto.setId(((Number) row.get("id")).longValue());
             dto.setDroneModel((String) row.get("drone_model"));
             dto.setDroneSn((String) row.get("drone_sn"));
-            dto.setType((String) row.get("drone_type"));
-            dto.setIntrusionTime((Timestamp) row.get("intrusion_start_time"));
+            dto.setType((String) row.get("d_type"));
+            //dto.setIntrusionTime((Timestamp) row.get("intrusion_start_time"));
+            Object intrusionTimeObj = row.get("intrusion_start_time");
+            if (intrusionTimeObj instanceof LocalDateTime) {
+                dto.setIntrusionTime(Timestamp.valueOf((LocalDateTime) intrusionTimeObj));
+            } else if (intrusionTimeObj instanceof Timestamp) {
+                dto.setIntrusionTime((Timestamp) intrusionTimeObj);
+            }
+
             float lastLongitude = ((Number) row.get("last_longitude")).floatValue();
             float lastLatitude = ((Number) row.get("last_latitude")).floatValue();
             // todo 经纬度转换
-            dto.setLocation("未知");
+            dto.setLocation("真实地址");
             return dto;
         }).toList();
 
@@ -80,6 +151,11 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                 .forEach(dto -> deduped.putIfAbsent(dto.getDroneSn(), dto));
 
         List<RealTimeAlarmDTO> dedupedList = new ArrayList<>(deduped.values());
+
+        // 保证显示最近xxx条（由用户指定）
+        if (dedupedList.size() > sizeLimit) {
+            dedupedList = dedupedList.subList(0, sizeLimit);
+        }
 
         // 分页
         int fromIndex = (page - 1) * size;
@@ -92,7 +168,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         myPage.setTotal(dedupedList.size());
         myPage.setPages((long) Math.ceil((double) dedupedList.size() / size));
         myPage.setRecords(pagedList);
-        return Result.success(myPage);
+        return myPage;
     }
 
     @Override
@@ -121,7 +197,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         User me = CurrentUserContext.get();
-        if(!PermissionType.admin.getDesc().equals( me.getPermission())){
+        if (!PermissionType.admin.getDesc().equals(me.getPermission())) {
             Long userId = me.getId();
             qw.inSql(Alarm::getScanid,
                     "SELECT id FROM device WHERE device_user_id = " + userId);
@@ -152,7 +228,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     }
 
     @Override
-    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req){
+    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) {
         // 1. 查询原告警记录
         Alarm alarm = alarmMapper.selectById(alarmId);
         if (alarm == null) {
@@ -196,7 +272,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             throw new BusinessException("删除失败：ID 列表为空");
         }
         User user = CurrentUserContext.get();
-        if(!PermissionType.admin.getDesc().equals( user.getPermission())){
+        if (!PermissionType.admin.getDesc().equals(user.getPermission())) {
             throw new BusinessException("权限不足");
         }
         int deleted = alarmMapper.deleteBatchIds(ids);
@@ -253,7 +329,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setDroneSn(r.getDroneSn());
             dto.setModel(r.getDroneModel());
             //TODO:
-            dto.setDroneType( "国标");
+            dto.setDroneType("国标");
             dto.setFrequency(r.getFrequency());
             dto.setLastingTime(r.getLastingTime());
             //TODO:
@@ -273,6 +349,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                 pr.getCurrent(), pr.getPages(),
                 pr.getSize(), pr.getTotal(), dtoList));
     }
+
 }
 
 

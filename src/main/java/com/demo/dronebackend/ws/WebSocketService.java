@@ -1,8 +1,7 @@
 package com.demo.dronebackend.ws;
 
-import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceDTO;
-import com.demo.dronebackend.dto.screen.DeviceListDTO;
+import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
 import com.demo.dronebackend.model.MyPage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +12,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +26,8 @@ public class WebSocketService {
     // key: userId，value: 该用户的所有 WebSocketSession
     private final ConcurrentMap<String, CopyOnWriteArrayList<WebSocketSession>> sessionsByUser = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, List<DeviceDTO>> lastDeviceMap = new ConcurrentHashMap<>();
+
+
     @Data
     public static class UserPref {
         private String deviceType;
@@ -42,9 +44,7 @@ public class WebSocketService {
      * 添加某个用户的新会话
      */
     public void addSession(String userId, WebSocketSession session) {
-        sessionsByUser
-                .computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>())
-                .add(session);
+        sessionsByUser.computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>()).add(session);
     }
 
     /**
@@ -107,6 +107,31 @@ public class WebSocketService {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    /**
+     * 推送实时告警给用户
+     * @param userId 用户id
+     * @param myPage 分页告警信息
+     */
+    public void sendAlarmListToUser(Long userId, MyPage<RealTimeAlarmDTO> myPage) {
+        List<WebSocketSession> sessions = sessionsByUser.get(String.valueOf(userId));
+        if (sessions == null || sessions.isEmpty()) return;
+
+        try {
+            // JSON 序列化
+            String payload = new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .writeValueAsString(myPage);
+
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    session.sendMessage(new TextMessage(payload));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

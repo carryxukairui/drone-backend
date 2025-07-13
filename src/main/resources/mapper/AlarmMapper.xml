@@ -22,14 +22,14 @@
             <result property="horizontalHeadingAngle" column="horizontal_heading_angle" jdbcType="DOUBLE"/>
             <result property="verticalHeadingAngle" column="vertical_heading_angle" jdbcType="DOUBLE"/>
             <result property="type" column="type" jdbcType="TINYINT"/>
-            <result property="scanids" column="scanIDs" jdbcType="OTHER"/>
+            <result property="scanids" column="scanIDs" jdbcType="OTHER" typeHandler="com.demo.dronebackend.handler.StringListTypeHandler"/>
             <result property="scanid" column="scanID" jdbcType="VARCHAR"/>
             <result property="lastingTime" column="lasting_time" jdbcType="FLOAT"/>
             <result property="backLongitude" column="back_longitude" jdbcType="DOUBLE"/>
             <result property="backLatitude" column="back_latitude" jdbcType="DOUBLE"/>
             <result property="pilotLongitude" column="pilot_longitude" jdbcType="DOUBLE"/>
             <result property="pilotLatitude" column="pilot_latitude" jdbcType="DOUBLE"/>
-            <result property="trajectory" column="trajectory" jdbcType="OTHER"/>
+            <result property="trajectory" column="trajectory" jdbcType="OTHER" typeHandler="com.demo.dronebackend.handler.MapListTypeHandler"/>
             <result property="stationId" column="station_id" jdbcType="VARCHAR"/>
             <result property="detectType" column="detect_type" jdbcType="TINYINT"/>
     </resultMap>

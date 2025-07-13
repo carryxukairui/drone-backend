@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Min;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
 public class RealtimeAlarmReq {
@@ -25,12 +25,12 @@ public class RealtimeAlarmReq {
     /** 起飞时间 ≥ startTime */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startTime;
+    private Date startTime;
 
     /** 降落时间 ≤ endTime */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endTime;
+    private Date endTime;
 
     /** 无人机型号（模糊匹配） */
     private String droneModel;

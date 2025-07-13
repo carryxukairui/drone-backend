@@ -8,7 +8,11 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
+import com.demo.dronebackend.handler.MapListTypeHandler;
+import com.demo.dronebackend.handler.StringListTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +23,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 @TableName(value ="alarm")
 @Data
 public class Alarm {
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     private String droneModel;
@@ -56,7 +61,8 @@ public class Alarm {
 
     private Integer type;
 
-    private Object scanids;
+    @TableField(typeHandler = StringListTypeHandler.class)
+    private List<String> scanids;
 
     private String scanid;
 
@@ -70,7 +76,8 @@ public class Alarm {
 
     private Double pilotLatitude;
 
-    private Object trajectory;
+    @TableField(typeHandler = MapListTypeHandler.class)
+    private List<Map<Object,Object>> trajectory;
 
     private String stationId;
 

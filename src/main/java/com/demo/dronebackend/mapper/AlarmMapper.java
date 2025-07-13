@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -18,20 +18,25 @@ import java.util.Map;
 */
 @Mapper
 public interface AlarmMapper extends BaseMapper<Alarm> {
-    @Select("SELECT a.*, d.type AS drone_type " +
+    @Select("SELECT a.*, d.type AS d_type " +
             "FROM alarm a " +
-            "INNER JOIN drone d ON a.drone_sn = d.drone_sn " +
+            "INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId} " +
+            "LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId} " +
             "WHERE (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime}) " +
             "AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime}) " +
             "AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%')) " +
             "AND (#{type} IS NULL OR d.type = #{type}) " +
             "ORDER BY a.intrusion_start_time DESC " +
             "LIMIT #{limit}")
-    List<Map<String, Object>> queryAlarmWithDroneDedup(@Param("startTime") LocalDateTime startTime,
-                                                       @Param("endTime") LocalDateTime endTime,
+    List<Map<String, Object>> queryAlarmWithDroneDedup(@Param("startTime") Date startTime,
+                                                       @Param("endTime") Date endTime,
                                                        @Param("droneModel") String droneModel,
                                                        @Param("type") String type,
+                                                       @Param("userId") Long userId,
                                                        @Param("limit") int limit);
+
+
+
 }
 
 

@@ -2,6 +2,7 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
+import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
@@ -15,6 +16,11 @@ import java.util.List;
  * 告警信息Service
  */
 public interface AlarmService extends IService<Alarm> {
+
+    /**
+     * 硬件请求处理
+     */
+    Result<?> handleDroneReport(DroneReport report);
 
     /**
      * 驾驶舱-实时告警
@@ -34,4 +40,5 @@ public interface AlarmService extends IService<Alarm> {
     Result<?> batchDelete(List<Long> ids);
 
     Result<?> historyList(FlightHistoryQuery query);
+
 }

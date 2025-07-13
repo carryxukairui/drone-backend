@@ -1,5 +1,4 @@
 package com.demo.dronebackend.ws;
-import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.CloseStatus;
