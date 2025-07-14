@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -28,6 +29,8 @@ import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,6 +52,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
+
 /**
  * @author 28611
  * @description 针对表【alarm(告警信息表)】的数据库操作Service实现
@@ -61,7 +66,12 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         implements AlarmService {
 
     private final AlarmMapper alarmMapper;
+    private final DeviceMapper deviceMapper;
+    private final ObjectMapper objectMapper;
     private final TiandituService tiandituService;
+    private final WebSocketService webSocketService;
+
+    private RealtimeAlarmReq req;
 
     @Override
     public Result<?> handleDroneReport(DroneReport report) {
@@ -74,7 +84,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date landingTime = new Date(report.getIntrusionStartTime().getTime() + (long) (report.getLastingTime() * 1000));
         alarm.setLandingTime(landingTime);
         alarm.setIntrusionStartTime(report.getIntrusionStartTime());
-        alarm.setDroneId(report.getStationId());
+        alarm.setDroneId(report.getStationId() + "-" + System.currentTimeMillis());
         alarm.setDroneSn(report.getDroneUUID());
         alarm.setFrequency(report.getFrequency());
         alarm.setBandwidth(report.getBandwidth());
@@ -111,6 +121,60 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         return Result.success(myPage);
     }
 
+    @Override
+    public Result<?> getAlarm(String id) {
+        Long alarmId = Long.parseLong(id);
+        Alarm currentAlarm = alarmMapper.selectById(alarmId);
+        if (currentAlarm == null) {
+            throw new BusinessException("告警不存在");
+        }
+        String droneSn = currentAlarm.getDroneSn();
+        Date intrusionStartTime = currentAlarm.getIntrusionStartTime();
+        if (intrusionStartTime == null) {
+            throw new BusinessException("当前告警缺少 intrusionStartTime");
+        }
+        // 计算查询的时间点
+        Date startTime = new Date(intrusionStartTime.getTime() - TRAJECTORY_TIME);
+
+        // 查询指定时间内该 droneSn 的所有告警，按入侵时间升序排序
+        List<Alarm> recentAlarms = alarmMapper.selectRecentAlarms(droneSn, startTime, intrusionStartTime);
+        // 合并轨迹
+        List<Map<Object, Object>> mergedTrajectory = new ArrayList<>();
+
+        for (Alarm alarm : recentAlarms) {
+            Object rawTrajectory = alarm.getTrajectory();
+            if (rawTrajectory == null) continue;
+            try {
+                List<Map<Object, Object>> trajectoryList;
+                if (rawTrajectory instanceof String) {
+                    // JSON 字符串（可能数据库驱动没有解析）
+                    trajectoryList = objectMapper.readValue(
+                            (String) rawTrajectory,
+                            new TypeReference<List<Map<Object, Object>>>() {}
+                    );
+                } else if (rawTrajectory instanceof List) {
+                    // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
+                    trajectoryList = (List<Map<Object, Object>>) rawTrajectory;
+                } else {
+                    // 其他情况（如 JSONArray、LinkedHashMap），先序列化再反序列化为目标格式
+                    String json = objectMapper.writeValueAsString(rawTrajectory);
+                    trajectoryList = objectMapper.readValue(
+                            json,
+                            new TypeReference<List<Map<Object, Object>>>() {}
+                    );
+                }
+                mergedTrajectory.addAll(trajectoryList);
+            } catch (Exception e) {
+                log.error("解析 trajectory 失败, alarmId = {}", alarm.getId(), e);
+            }
+        }
+
+        // 构造 DTO
+        DetailedAlarmDTO dto = BeanUtil.copyProperties(currentAlarm, DetailedAlarmDTO.class);
+        dto.setTrajectory(mergedTrajectory);
+        return Result.success(dto);
+    }
+
     /**
      * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
      * @param userId 用户id
@@ -139,18 +203,17 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setDroneModel((String) row.get("drone_model"));
             dto.setDroneSn((String) row.get("drone_sn"));
             dto.setType((String) row.get("d_type"));
-            //dto.setIntrusionTime((Timestamp) row.get("intrusion_start_time"));
             Object intrusionTimeObj = row.get("intrusion_start_time");
             if (intrusionTimeObj instanceof LocalDateTime) {
                 dto.setIntrusionTime(Timestamp.valueOf((LocalDateTime) intrusionTimeObj));
             } else if (intrusionTimeObj instanceof Timestamp) {
                 dto.setIntrusionTime((Timestamp) intrusionTimeObj);
             }
-
-            float lastLongitude = ((Number) row.get("last_longitude")).floatValue();
-            float lastLatitude = ((Number) row.get("last_latitude")).floatValue();
-            // todo 经纬度转换
-            dto.setLocation("真实地址");
+            double lastLongitude = ((Number) row.get("last_longitude")).doubleValue();
+            double lastLatitude = ((Number) row.get("last_latitude")).doubleValue();
+            // 经纬度转换
+            String location = tiandituService.reverseGeocode(lastLongitude, lastLatitude);
+            dto.setLocation(location);
             return dto;
         }).toList();
 

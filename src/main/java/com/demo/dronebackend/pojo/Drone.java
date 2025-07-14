@@ -21,9 +21,8 @@ public class Drone {
     private String droneModel;
 
     private String droneSn;
+
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(fill = FieldFill.UPDATE)
     private Date updateTime;
 
     private String type;

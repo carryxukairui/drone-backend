@@ -154,7 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
-        int cnt = userMapper.deleteById(id);
+        int cnt = userMapper.deleteById(Long.parseLong(id));
         if (cnt==0){
             throw new BusinessException("用户不存在");
         }
@@ -166,7 +166,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
-        User user = userMapper.selectById(id);
+        User user = userMapper.selectById(Long.parseLong(id));
         if (user == null) {
             throw new BusinessException("用户不存在");
         }

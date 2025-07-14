@@ -10,6 +10,7 @@ import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,6 +43,11 @@ public class ScreenController {
     @GetMapping("alarms")
     public Result<?> realtimeAlarms(@Valid @ModelAttribute RealtimeAlarmReq req){
         return alarmService.realtimeAlarms(req);
+    }
+
+    @GetMapping("alarms/{id}")
+    public Result<?> getAlarm(@NotBlank @PathVariable String id){
+        return alarmService.getAlarm(id);
     }
 
     /**

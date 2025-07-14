@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.demo.dronebackend.handler.MapListTypeHandler;
 import com.demo.dronebackend.handler.StringListTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -61,8 +62,8 @@ public class Alarm {
 
     private Integer type;
 
-    @TableField(typeHandler = StringListTypeHandler.class)
-    private List<String> scanids;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Object scanids;
 
     private String scanid;
 
@@ -76,8 +77,8 @@ public class Alarm {
 
     private Double pilotLatitude;
 
-    @TableField(typeHandler = MapListTypeHandler.class)
-    private List<Map<Object,Object>> trajectory;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Object trajectory;
 
     private String stationId;
 

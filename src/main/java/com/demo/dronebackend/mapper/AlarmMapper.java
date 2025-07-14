@@ -5,17 +5,13 @@ import com.demo.dronebackend.dto.screen.MonthDroneStatsDTO;
 import com.demo.dronebackend.dto.screen.WeekDroneStatsDTO;
 import com.demo.dronebackend.pojo.Alarm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import com.demo.dronebackend.pojo.DateCount;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
 import java.time.ZoneId;
@@ -46,6 +42,15 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
                                                        @Param("type") String type,
                                                        @Param("userId") Long userId,
                                                        @Param("limit") int limit);
+
+
+    @Select("SELECT * FROM alarm WHERE drone_sn = #{droneSn} " +
+            "AND intrusion_start_time BETWEEN #{startTime} AND #{endTime} " +
+            "ORDER BY intrusion_start_time ASC")
+    List<Alarm> selectRecentAlarms(@Param("droneSn") String droneSn,
+                                   @Param("startTime") Date startTime,
+                                   @Param("endTime") Date endTime);
+
 
 
     @Select({

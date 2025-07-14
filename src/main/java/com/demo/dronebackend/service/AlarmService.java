@@ -27,6 +27,8 @@ public interface AlarmService extends IService<Alarm> {
      */
     Result<?> realtimeAlarms(RealtimeAlarmReq req);
 
+    Result<?> getAlarm(String id);
+
 
     /**
      * 系统管理-感知记录管理

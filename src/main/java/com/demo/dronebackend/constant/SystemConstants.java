@@ -25,10 +25,13 @@ public class SystemConstants {
     public static final String INITIAL_PASSWORD = "zhouhedikong123456";
 
     /**
-     *
      * 请求体的satoken
      */
     public static final String SA_TOKEN = "satoken";
 
-
+    /**
+     * 合并指定时间范围内同一无人机触发的所有轨迹信息，可根据业务调整
+     * 默认为24小时
+     */
+    public static final long TRAJECTORY_TIME = 24L * 60 * 60 * 1000;
 }
