@@ -2,6 +2,7 @@ package com.demo.dronebackend.config;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.demo.dronebackend.constant.SystemConstants;
+import com.demo.dronebackend.ws.AlarmWebSocketHandler;
 import com.demo.dronebackend.ws.MyWebSocketHandler;
 import com.demo.dronebackend.ws.WebSocketService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +18,6 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
-
 
 
 @Configuration
@@ -49,7 +49,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                             token = httpReq.getParameter(SystemConstants.SA_TOKEN);
                         }
 
-
                         StpUtil.checkLogin();                // 校验：没登录会抛异常
                         String loginId = StpUtil.getLoginIdByToken(token).toString();
 
@@ -64,12 +63,47 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                WebSocketHandler wsHandler,
                                                Exception exception) {
                     }
-                })
-                .setAllowedOrigins("*");
+                }).setAllowedOrigins("*");
+
+        registry.addHandler(alarmHandler(), "/ws/alarms")
+                .addInterceptors(new HandshakeInterceptor() {
+                    @Override
+                    public boolean beforeHandshake(ServerHttpRequest request,
+                                                   ServerHttpResponse response,
+                                                   WebSocketHandler wsHandler,
+                                                   Map<String, Object> attributes) throws Exception {
+                        ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
+                        HttpServletRequest httpReq = servletRequest.getServletRequest();
+
+                        // 从请求里拿到token
+                        String token = httpReq.getHeader(SystemConstants.SA_TOKEN);
+                        if (token == null) {
+                            token = httpReq.getParameter(SystemConstants.SA_TOKEN);
+                        }
+                        // 登录校验
+                        StpUtil.checkLogin();
+                        String userId = StpUtil.getLoginIdByToken(token).toString();
+
+                        // 把 userId 放到 WebSocketSession
+                        attributes.put("userId", userId);
+                        return true;
+                    }
+                    @Override
+                    public void afterHandshake(ServerHttpRequest request,
+                                               ServerHttpResponse response,
+                                               WebSocketHandler wsHandler,
+                                               Exception exception) {
+                    }
+                }).setAllowedOrigins("*");
     }
 
     @Bean
     public WebSocketHandler myHandler() {
         return new MyWebSocketHandler(webSocketService);
+    }
+
+    @Bean
+    public WebSocketHandler alarmHandler() {
+        return new AlarmWebSocketHandler(webSocketService);
     }
 }

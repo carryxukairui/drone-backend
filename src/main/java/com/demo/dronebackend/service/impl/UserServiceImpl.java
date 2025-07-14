@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -153,7 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
-        int cnt = userMapper.deleteById(id);
+        int cnt = userMapper.deleteById(Long.parseLong(id));
         if (cnt==0){
             throw new BusinessException("用户不存在");
         }
@@ -165,7 +166,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!isAdmin()){
             throw new BusinessException("无权限");
         }
-        User user = userMapper.selectById(id);
+        User user = userMapper.selectById(Long.parseLong(id));
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
@@ -207,7 +208,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             qw.eq(User::getPermission, req.getPermission());
         }
         Page<User> result = userMapper.selectPage(page, qw);
-        return Result.success(new MyPage<>(result));
+        List<UserDTO> dtoList = result.getRecords()
+                .stream()
+                .map(user -> BeanUtil.copyProperties(user, UserDTO.class))
+                .collect(Collectors.toList());
+        MyPage<UserDTO> dtoPage = new MyPage<>(result);
+        dtoPage.setRecords(dtoList);
+        return Result.success(dtoPage);
     }
 
     @Override

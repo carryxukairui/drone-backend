@@ -5,11 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Date;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -19,6 +16,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 @TableName(value ="alarm")
 @Data
 public class Alarm {
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     private String droneModel;
@@ -29,13 +27,10 @@ public class Alarm {
 
     private Double lastAltitude;
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date takeoffTime;
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date landingTime;
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date intrusionStartTime;
 
     private String droneId;
@@ -56,6 +51,7 @@ public class Alarm {
 
     private Integer type;
 
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private Object scanids;
 
     private String scanid;
@@ -70,6 +66,7 @@ public class Alarm {
 
     private Double pilotLatitude;
 
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private Object trajectory;
 
     private String stationId;

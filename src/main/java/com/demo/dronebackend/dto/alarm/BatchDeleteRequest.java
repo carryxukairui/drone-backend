@@ -9,5 +9,5 @@ import java.util.List;
 public class BatchDeleteRequest {
 
     @NotEmpty(message = "ids 不能为空")
-    private List<String> ids;
+    private List<Long> ids;
 }

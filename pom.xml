@@ -59,11 +59,6 @@
             <artifactId>druid-spring-boot-3-starter</artifactId>
             <version>1.2.20</version>
         </dependency>
-        <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis-spring</artifactId>
-            <version>3.0.3</version>
-        </dependency>
         <!-- 驱动类-->
         <dependency>
             <groupId>mysql</groupId>
@@ -97,6 +92,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!--hutool工具包-->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -109,7 +109,6 @@
             <artifactId>aliyun-java-sdk-core</artifactId>
             <version>4.5.0</version>
         </dependency>
-
         <!-- 阿里云短信 SDK -->
         <dependency>
             <groupId>com.aliyun</groupId>
@@ -138,6 +137,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!--websocket-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>

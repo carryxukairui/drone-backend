@@ -18,6 +18,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 public class DisposalRecord {
     private Long id;
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date time;
 

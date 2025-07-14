@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/admin/devices")
+@RequestMapping("admin/devices")
 @RequiredArgsConstructor
 public class DeviceController {
     private final DeviceService deviceService;
