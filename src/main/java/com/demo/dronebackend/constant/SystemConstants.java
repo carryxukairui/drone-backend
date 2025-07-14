@@ -34,4 +34,7 @@ public class SystemConstants {
      * 默认为24小时
      */
     public static final long TRAJECTORY_TIME = 24L * 60 * 60 * 1000;
+
+    public static final String ALARM_WEBSOCKET_TOPIC = "alarm";
+    public static final String DEVICES_WEBSOCKET_TOPIC = "devices";
 }

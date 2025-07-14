@@ -28,4 +28,6 @@ public class User {
     private String permission;
 
     private String organization;
+
+    private Integer unattended;
 }

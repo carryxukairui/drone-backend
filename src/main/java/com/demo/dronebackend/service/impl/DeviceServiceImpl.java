@@ -30,6 +30,8 @@ import org.springframework.util.StringUtils;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
+
 /**
 * @author 28611
 * @description 针对表【device(设备表)】的数据库操作Service实现
@@ -157,7 +159,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
                     .add(dto);
         }
         // 4. 分用户推送：为每个用户构造子报告并发送
-        dtoByUser.forEach(webSocketService::sendDeviceListToUser);
+        dtoByUser.forEach((userId, listOfDto) -> {
+            // 1. 先把前缀加上
+            String topic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+            webSocketService.sendDeviceListToUser(topic, listOfDto);
+        });
 
         return Map.of("code", 200, "msg", "Success");
     }

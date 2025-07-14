@@ -1,6 +1,7 @@
 package com.demo.dronebackend.ws;
 
 
+import com.demo.dronebackend.constant.SystemConstants;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -18,20 +19,20 @@ public class AlarmWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId==null){
+        String topicKey  = (String) session.getAttributes().get(SystemConstants.ALARM_WEBSOCKET_TOPIC);
+        if (topicKey==null){
             try {
                 session.close(CloseStatus.NOT_ACCEPTABLE.withReason("No userId in session"));
             } catch (IOException ignored) {}
         }
-        webSocketService.addSession(userId, session);
+        webSocketService.addSession(topicKey, session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId != null) {
-            webSocketService.removeSession(userId, session);
+        String topicKey  = (String) session.getAttributes().get(SystemConstants.ALARM_WEBSOCKET_TOPIC);
+        if (topicKey != null) {
+            webSocketService.removeSession(topicKey, session);
         }
     }
 

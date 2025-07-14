@@ -177,4 +177,8 @@ public class ScreenController {
         return regionService.createAlertRegion(req);
     }
 
+    /**
+     * 无人值守
+     */
+
 }

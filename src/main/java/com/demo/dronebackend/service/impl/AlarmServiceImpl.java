@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**
@@ -71,7 +73,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final TiandituService tiandituService;
     private final WebSocketService webSocketService;
 
-    private RealtimeAlarmReq req;
+    private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
     @Override
     public Result<?> handleDroneReport(DroneReport report) {
@@ -109,13 +111,16 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         // 根据用户id获取最新告警集合
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         // 推送到设备绑定用户
-        webSocketService.sendAlarmListToUser(userId,myPage);
+        String topic = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
+        webSocketService.sendAlarmListToUser(topic,myPage);
         return Result.success("推送成功", null);
     }
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        this.req=req; // 第一次展示，同步展示条件参数
+        if (req != null){
+            this.req=req; // 第一次展示，同步展示条件参数
+        }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         return Result.success(myPage);
