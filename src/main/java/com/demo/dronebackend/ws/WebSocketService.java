@@ -1,6 +1,7 @@
 package com.demo.dronebackend.ws;
 
 import com.demo.dronebackend.constant.DeviceType;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceDTO;
 import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
@@ -117,8 +118,8 @@ public class WebSocketService {
      * @param userId 用户id
      * @param myPage 分页告警信息
      */
-    public void sendAlarmListToUser(Long userId, MyPage<RealTimeAlarmDTO> myPage) {
-        List<WebSocketSession> sessions = sessionsByUser.get(String.valueOf(userId));
+    public void sendAlarmListToUser(String userId, MyPage<RealTimeAlarmDTO> myPage) {
+        List<WebSocketSession> sessions = sessionsByUser.get(userId);
         if (sessions == null || sessions.isEmpty()) return;
 
         try {
@@ -153,8 +154,8 @@ public class WebSocketService {
     /** 当偏好变更时，前端也可以直接调用： */
     public void pushToSession(WebSocketSession session) {
         // 假设你有一个全局缓存 lastDeviceMap: userId -> List<DeviceDTO>
-        String userId = (String) session.getAttributes().get("userId");
+        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
         List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
-        sendDeviceListToUser(userId, all);
+        sendDeviceListToUser(SystemConstants.DEVICES_WEBSOCKET_TOPIC+userId, all);
     }
 }

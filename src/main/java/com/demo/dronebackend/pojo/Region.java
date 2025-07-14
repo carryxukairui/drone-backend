@@ -4,30 +4,27 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.util.Date;
 import lombok.Data;
 
 /**
- * @TableName user
+ * @TableName region
  */
-@TableName(value ="user")
+@TableName(value ="region")
 @Data
-public class User {
+public class Region {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    private String name;
+    private Date time;
 
-    private String sex;
+    private Integer type;
 
-    private String phone;
+    private Long userId;
 
-    private String salt;
+    private Double centerLon;
 
-    private String password;
+    private Double centerLat;
 
-    private String permission;
-
-    private String organization;
-
-    private Integer unattended;
+    private Double radius;
 }

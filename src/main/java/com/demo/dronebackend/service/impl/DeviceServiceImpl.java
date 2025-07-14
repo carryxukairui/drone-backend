@@ -20,6 +20,7 @@ import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
+import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,8 @@ import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 
 /**
 * @author 28611
@@ -43,7 +46,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final DisposalRecordMapper disposalRecordMapper;
     private final UserMapper userMapper;
     private final WebSocketService webSocketService;
-
+    private final TiandituService tiandituService;
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -149,14 +152,18 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setPower(dev.getPower());
             dto.setLinkStatus(dev.getLinkStatus());
             dto.setDeviceType(dev.getDeviceType());
-            //TODO：接入api获取位置信息
-            dto.setLocation("详细地址");
+            String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
+            dto.setLocation(location);
             // 加入到对应用户的列表
             dtoByUser.computeIfAbsent(userId, k -> new ArrayList<>())
                     .add(dto);
         }
         // 4. 分用户推送：为每个用户构造子报告并发送
-        dtoByUser.forEach(webSocketService::sendDeviceListToUser);
+        dtoByUser.forEach((userId, listOfDto) -> {
+            // 1. 先把前缀加上
+            String topic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+            webSocketService.sendDeviceListToUser(topic, listOfDto);
+        });
 
         return Map.of("code", 200, "msg", "Success");
     }

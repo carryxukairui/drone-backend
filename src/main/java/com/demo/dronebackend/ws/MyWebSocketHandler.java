@@ -1,6 +1,7 @@
 package com.demo.dronebackend.ws;
 
 import com.demo.dronebackend.constant.DeviceType;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.CloseStatus;
@@ -26,13 +27,14 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         // 1. 从握手时存入的 attributes 中拿到 userId
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId != null) {
+        String topicKey  = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
+        if (topicKey  != null) {
             // 2. 按用户添加到 service
             // 初始化默认偏好：不过滤、page=1、size=10
             session.getAttributes().put(PREF_ATTR, new WebSocketService.UserPref(DeviceType.TDOA, 1, 10));
-            webSocketService.addSession(userId, session);
-            System.out.println("Connection established for user " + userId + ": " + session.getId());
+
+            webSocketService.addSession(topicKey , session);
+            System.out.println("Connection established for user " + topicKey  + ": " + session.getId());
         } else {
             // 没拿到 userId，直接断开（可选）
             try {
@@ -43,10 +45,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId != null) {
-            webSocketService.removeSession(userId, session);
-            System.out.println("Connection closed for user " + userId + ": " + session.getId());
+        String topicKey  = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
+        if (topicKey != null) {
+
+            webSocketService.removeSession(topicKey, session);
+            System.out.println("Connection closed for user " + topicKey + ": " + session.getId());
         }
     }
 

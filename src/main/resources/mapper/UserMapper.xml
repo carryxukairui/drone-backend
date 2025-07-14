@@ -13,11 +13,12 @@
             <result property="password" column="password" jdbcType="VARCHAR"/>
             <result property="permission" column="permission" jdbcType="VARCHAR"/>
             <result property="organization" column="organization" jdbcType="VARCHAR"/>
+            <result property="unattended" column="unattended" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,name,Sex,
         phone,salt,password,
-        permission,organization
+        permission,organization,unattended
     </sql>
 </mapper>

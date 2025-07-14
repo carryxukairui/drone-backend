@@ -40,22 +40,22 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                    ServerHttpResponse response,
                                                    WebSocketHandler wsHandler,
                                                    Map<String, Object> attributes) throws Exception {
-                        // 1. 强转到 ServletRequest，才能取到 Sa‑Token 存在的 header/cookie/param
-                        ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
-                        HttpServletRequest httpReq = servletRequest.getServletRequest();
-
-                        // 2. 从请求里拿到 Sa‑Token（默认名称为 "satoken"），可在 Header、Cookie、参数里
-                        String token = httpReq.getHeader(SystemConstants.SA_TOKEN);
-                        if (token == null) {
-                            token = httpReq.getParameter(SystemConstants.SA_TOKEN);
+                        URI uri = request.getURI();
+                        String query = uri.getQuery(); // 例：token=eyJhbGciOiJIUzI1NiIsInR
+                        if (query != null && query.startsWith("satoken=")) {
+                            String token = query.substring("satoken=".length());
+                            // 登录校验
+                            StpUtil.checkLogin();
+                            String userId = StpUtil.getLoginIdByToken(token).toString();
+                            if (userId != null) {
+                                String topicKey = SystemConstants.DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+                                // 4. 把 userId 放到 WebSocketSession 属性里
+                                attributes.put(SystemConstants.DEVICES_WEBSOCKET_TOPIC, topicKey);
+                                return true;
+                            }
                         }
-
-                        StpUtil.checkLogin();                // 校验：没登录会抛异常
-                        String loginId = StpUtil.getLoginIdByToken(token).toString();
-
-                        // 4. 把 userId 放到 WebSocketSession 属性里
-                        attributes.put("userId", loginId);
-                        return true;
+                        // 无效 token，拦截连接
+                        return false;
                     }
 
                     @Override
@@ -73,21 +73,22 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                    ServerHttpResponse response,
                                                    WebSocketHandler wsHandler,
                                                    Map<String, Object> attributes) throws Exception {
-                        ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
-                        HttpServletRequest httpReq = servletRequest.getServletRequest();
-
-                        // 从请求里拿到token
-                        String token = httpReq.getHeader(SystemConstants.SA_TOKEN);
-                        if (token == null) {
-                            token = httpReq.getParameter(SystemConstants.SA_TOKEN);
+                        URI uri = request.getURI();
+                        String query = uri.getQuery(); // 例：token=eyJhbGciOiJIUzI1NiIsInR
+                        if (query != null && query.startsWith("satoken=")) {
+                            String token = query.substring("satoken=".length());
+                            // 登录校验
+                            StpUtil.checkLogin();
+                            String userId = StpUtil.getLoginIdByToken(token).toString();
+                            if (userId != null) {
+                                String topicKey = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
+                                // 4. 把 userId 放到 WebSocketSession 属性里
+                                attributes.put(SystemConstants.ALARM_WEBSOCKET_TOPIC, topicKey);
+                                return true;
+                            }
                         }
-                        // 登录校验
-                        StpUtil.checkLogin();
-                        String userId = StpUtil.getLoginIdByToken(token).toString();
-
-                        // 把 userId 放到 WebSocketSession
-                        attributes.put("userId", userId);
-                        return true;
+                        // 无效 token，拦截连接
+                        return false;
                     }
                     @Override
                     public void afterHandshake(ServerHttpRequest request,

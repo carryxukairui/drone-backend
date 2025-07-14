@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
@@ -39,8 +40,11 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.*;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -106,13 +110,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         // 根据用户id获取最新告警集合
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         // 推送到设备绑定用户
-        webSocketService.sendAlarmListToUser(userId,myPage);
+        String topic = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
+        webSocketService.sendAlarmListToUser(topic,myPage);
         return Result.success("推送成功", null);
     }
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req!=null){
+        if (req != null){
             this.req=req; // 第一次展示，同步展示条件参数
         }
         Long userId = StpUtil.getLoginIdAsLong();
@@ -517,60 +522,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
         return Result.success( count);
-    }
-
-    @Override
-    public Result<?> getMonitorCount() {
-        // 今天、昨天、去年今天
-        LocalDate today = LocalDate.now();
-        LocalDate yesterday = today.minusDays(1);
-        LocalDate lastYearToday = today.minusYears(1);
-
-        Date todayStart = toDate(today.atStartOfDay());
-        Date todayEnd = toDate(today.atTime(LocalTime.MAX));
-
-        Date yesterdayStart = toDate(yesterday.atStartOfDay());
-        Date yesterdayEnd = toDate(yesterday.atTime(LocalTime.MAX));
-
-        Date lastYearStart = toDate(lastYearToday.atStartOfDay());
-        Date lastYearEnd = toDate(lastYearToday.atTime(LocalTime.MAX));
-
-        // 查询各时间段数据量
-        long todayCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, todayStart, todayEnd)
-        );
-        long yesterdayCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, yesterdayStart, yesterdayEnd)
-        );
-        long lastYearCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, lastYearStart, lastYearEnd)
-        );
-        // 构造返回值
-        return Result.success(new MonitorCountDTO(todayCount,calcRate(todayCount, lastYearCount),calcRate(todayCount, yesterdayCount)));
-    }
-
-    private Date toDate(LocalDateTime ldt) {
-        return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-    }
-
-    /**
-     * 增长率计算
-     * @param current 当前值（今天）
-     * @param compare 对比值（昨天或去年）
-     */
-    private String calcRate(long current, long compare) {
-        if (compare == 0) {
-            if (current == 0) {
-                return "0%";
-            } else {
-                return "100%+";// 对比值为0，新增长
-            }
-        }
-        double rate = (current - compare) * 100.0 / compare;
-        return String.format("%.2f%%", rate);
     }
 
 }
