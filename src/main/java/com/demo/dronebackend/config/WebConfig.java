@@ -30,6 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/send-code",
                         "/screen/**",
                         "/sys/portable/status/**",
+                        "/admin/devices/**",
                         "/ws/**");
     }
     @Bean

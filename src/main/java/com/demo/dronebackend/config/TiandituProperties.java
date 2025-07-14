@@ -6,8 +6,15 @@ import org.springframework.stereotype.Component;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "tianditu.reverse-geocode")
+@ConfigurationProperties(prefix = "tianditu")
 public class TiandituProperties {
-    private String url;
-    private String key;
+
+    private ApiConfig reverseGeocode;
+    private ApiConfig geocode;
+
+    @Data
+    public static class ApiConfig {
+        private String url;
+        private String key;
+    }
 }
