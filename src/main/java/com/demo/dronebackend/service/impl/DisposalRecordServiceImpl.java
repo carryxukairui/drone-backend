@@ -6,9 +6,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DisposalRecordService;
@@ -30,7 +32,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
     implements DisposalRecordService{
 
     private final DisposalRecordMapper mapper;
-    private final UserMapper userMapper;
+    private final AlarmMapper alarmMapper;
     @Override
     public Result<?> DisposalList(DisposalRecordQuery q) {
         Page<DisposalRecord> page = new Page<>(q.getPage(), q.getSize());
@@ -76,7 +78,14 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         if (r == 0) {
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
-        return Result.success( null);
+        return Result.success(null);
+    }
+
+    @Override
+    public Result<?> getDisposalCount() {
+        long disposedCount = query().count();
+
+        return null;
     }
 }
 

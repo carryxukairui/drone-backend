@@ -53,4 +53,9 @@ public interface AlarmService extends IService<Alarm> {
 
     Result<?> getAllDroneDistribution();
 
+
+    /**
+     * 今日告警
+     */
+    Result<?> getMonitorCount();
 }

@@ -9,6 +9,7 @@ import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
+import com.demo.dronebackend.service.DisposalRecordService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ScreenController {
 
     private final AlarmService alarmService;
     private final DeviceService deviceService;
+    private final DisposalRecordService disposalRecordService;
 
 
     /**
@@ -136,6 +138,11 @@ public class ScreenController {
      */
     @GetMapping("dynamics/monitor-count")
     public Result<?> getMonitorCount(){
-        return null;
+        return alarmService.getMonitorCount();
+    }
+
+    @GetMapping("dynamics/disposal-count")
+    public Result<?> getDisposalCount(){
+        return disposalRecordService.getDisposalCount();
     }
 }

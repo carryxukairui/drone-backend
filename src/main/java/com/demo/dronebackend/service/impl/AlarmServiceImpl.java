@@ -39,11 +39,8 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -71,7 +68,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final TiandituService tiandituService;
     private final WebSocketService webSocketService;
 
-    private RealtimeAlarmReq req;
+    private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
     @Override
     public Result<?> handleDroneReport(DroneReport report) {
@@ -115,7 +112,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        this.req=req; // 第一次展示，同步展示条件参数
+        if (req!=null){
+            this.req=req; // 第一次展示，同步展示条件参数
+        }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         return Result.success(myPage);
@@ -518,6 +517,60 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
         return Result.success( count);
+    }
+
+    @Override
+    public Result<?> getMonitorCount() {
+        // 今天、昨天、去年今天
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate lastYearToday = today.minusYears(1);
+
+        Date todayStart = toDate(today.atStartOfDay());
+        Date todayEnd = toDate(today.atTime(LocalTime.MAX));
+
+        Date yesterdayStart = toDate(yesterday.atStartOfDay());
+        Date yesterdayEnd = toDate(yesterday.atTime(LocalTime.MAX));
+
+        Date lastYearStart = toDate(lastYearToday.atStartOfDay());
+        Date lastYearEnd = toDate(lastYearToday.atTime(LocalTime.MAX));
+
+        // 查询各时间段数据量
+        long todayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, todayStart, todayEnd)
+        );
+        long yesterdayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, yesterdayStart, yesterdayEnd)
+        );
+        long lastYearCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, lastYearStart, lastYearEnd)
+        );
+        // 构造返回值
+        return Result.success(new MonitorCountDTO(todayCount,calcRate(todayCount, lastYearCount),calcRate(todayCount, yesterdayCount)));
+    }
+
+    private Date toDate(LocalDateTime ldt) {
+        return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * 增长率计算
+     * @param current 当前值（今天）
+     * @param compare 对比值（昨天或去年）
+     */
+    private String calcRate(long current, long compare) {
+        if (compare == 0) {
+            if (current == 0) {
+                return "0%";
+            } else {
+                return "100%+";// 对比值为0，新增长
+            }
+        }
+        double rate = (current - compare) * 100.0 / compare;
+        return String.format("%.2f%%", rate);
     }
 
 }
