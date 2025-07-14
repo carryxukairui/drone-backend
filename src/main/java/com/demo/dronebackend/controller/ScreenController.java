@@ -129,4 +129,13 @@ public class ScreenController {
     public Result<?> getAllDroneDistribution() {
         return alarmService.getAllDroneDistribution();
     }
+
+
+    /**
+     * 今日动态
+     */
+    @GetMapping("dynamics/monitor-count")
+    public Result<?> getMonitorCount(){
+        return null;
+    }
 }
