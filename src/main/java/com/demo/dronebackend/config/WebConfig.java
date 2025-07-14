@@ -28,6 +28,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/login-code",
                         "/user/send-code",
                         "/screen/**",
+                        "/admin/devices/**",
                         "/sys/portable/status/**");
     }
     @Bean

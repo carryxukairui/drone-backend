@@ -84,14 +84,12 @@ public class WebSocketService {
             }
             List<DeviceDTO> filtered = stream.toList();
 
-            // 分页
             int from = (pref.getPage() - 1) * pref.getSize();
             int to = Math.min(from + pref.getSize(), filtered.size());
             List<DeviceDTO> page = from < filtered.size()
                     ? filtered.subList(from, to)
                     : Collections.emptyList();
 
-            // 构造分页对象
             MyPage<DeviceDTO> report = new MyPage<>();
             report.setCurrent(pref.getPage());
             report.setSize(pref.getSize());

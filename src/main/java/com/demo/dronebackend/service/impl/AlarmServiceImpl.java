@@ -175,10 +175,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             qw.le(Alarm::getTakeoffTime, q.getEndTime());
         }
         if (StringUtils.hasText(q.getDroneId())) {
-            qw.eq(Alarm::getDroneId, q.getDroneId());
+            qw.like(Alarm::getDroneId, q.getDroneId());
         }
         if (StringUtils.hasText(q.getDroneSn())) {
-            qw.eq(Alarm::getDroneSn, q.getDroneSn());
+            qw.like(Alarm::getDroneSn, q.getDroneSn());
         }
         if (StringUtils.hasText(q.getModel())) {
             qw.eq(Alarm::getDroneModel, q.getModel());
@@ -186,6 +186,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (q.getDroneType() != null) {
             qw.eq(Alarm::getDroneType, q.getDroneType());
         }
+
+        //TODO:反制是如何得知的？
         // 已反制/未反制过滤
         if (Boolean.TRUE.equals(q.getDisposalFlag())) {
             qw.inSql(Alarm::getScanid,

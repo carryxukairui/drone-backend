@@ -15,6 +15,8 @@ public class FlightHistoryQuery {
     /** 起飞时间结束 */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
+    /** 地图框选或行政区划，前端可传 GeoJSON 或行政区码 */
+    private Map<String, Object> region;
     /** 无人机编号 */
     private String droneId;
     /** 无人机序列号 */
@@ -23,8 +25,6 @@ public class FlightHistoryQuery {
     private String model;
     /** 国标/自定义类型 */
     private Integer droneType;
-    /** 地图框选或行政区划，前端可传 GeoJSON 或行政区码 */
-    private Map<String, Object> region;
     /** 是否已反制 */
     private Boolean disposalFlag;
 

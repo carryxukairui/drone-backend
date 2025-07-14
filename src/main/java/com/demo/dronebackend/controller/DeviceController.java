@@ -5,6 +5,7 @@ import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
+import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
@@ -14,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("admin/devices")
+@RequestMapping("/admin/devices")
 @RequiredArgsConstructor
 public class DeviceController {
     private final DeviceService deviceService;
@@ -85,9 +86,19 @@ public class DeviceController {
     @GetMapping("/subscribe")
     public String subscribe(@RequestParam String topic) throws Exception {
         mqttService.subscribe(topic, (topic1, msg) -> {
+            System.out.println("111:");
             String payload = new String(msg.getPayload());
             System.out.println("Received from [" + topic1 + "] : " + payload);
         });
         return "Subscribed to topic: " + topic;
     }
+
+    @PostMapping("/sub")
+    @CrossOrigin
+    public String sub(@RequestBody StatusReport statusReport) {
+        System.out.println(statusReport);
+        return "Subscribed to topic: " ;
+    }
+
+
 }

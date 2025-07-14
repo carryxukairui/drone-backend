@@ -41,8 +41,6 @@ public class ScreenController {
     public Map<String, Object> reportStatus(@RequestBody StatusReport report) {
 
         System.out.println("Received device status: " + report);
-
-        // 3. 返回响应
         return deviceService.websocketDevice(report);
     }
 
