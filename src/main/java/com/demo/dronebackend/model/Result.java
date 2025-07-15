@@ -20,7 +20,7 @@ public class Result<T> {
 
     // 保持原有方法...
     public static <T> Result<T> success(T data) {
-        return new Result<>(200, "", data);
+        return new Result<>(200, "success", data);
     }
     public static <T> Result<T> error(String msg) {
         return new Result<T>(400, msg, null);

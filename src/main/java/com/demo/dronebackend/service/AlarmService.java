@@ -58,4 +58,8 @@ public interface AlarmService extends IService<Alarm> {
      * 今日告警
      */
     Result<?> getMonitorCount();
+
+    Result<?> getBrandCount();
+
+    Result<?> getSortiesByHour();
 }

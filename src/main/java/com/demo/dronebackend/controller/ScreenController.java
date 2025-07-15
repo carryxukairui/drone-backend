@@ -178,6 +178,16 @@ public class ScreenController {
         return disposalRecordService.getDisposalCount();
     }
 
+    @GetMapping("dynamics/brand-count")
+    public Result<?> getBrandCount(){
+        return alarmService.getBrandCount();
+    }
+
+
+    @GetMapping("dynamics/sorties-by-hour")
+    public Result<?> getSortiesByHour(){
+        return alarmService.getSortiesByHour();
+    }
 
     /**
      * 创建预警区、核心区、反制区

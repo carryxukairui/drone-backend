@@ -2,7 +2,6 @@ package com.demo.dronebackend.mapper;
 
 import com.demo.dronebackend.dto.screen.HourlyDroneStaDTO;
 import com.demo.dronebackend.dto.screen.MonthDroneStatsDTO;
-import com.demo.dronebackend.dto.screen.WeekDroneStatsDTO;
 import com.demo.dronebackend.pojo.Alarm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.*;
@@ -14,9 +13,6 @@ import com.demo.dronebackend.pojo.DateCount;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
 
 /**
 * @author 28611
@@ -126,6 +122,23 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
             "   AND d.device_user_id = #{userId}"
     })
     long getYearDistribution(@Param("userId") long userId);
+
+    @Select("SELECT COUNT(DISTINCT drone_sn) FROM alarm")
+    Long getDroneCount();
+
+    @Select("SELECT SUBSTRING_INDEX(drone_model, ' ', 1) AS brand, COUNT(*) AS sortie_count " +
+            "FROM alarm " +
+            "GROUP BY brand")
+    List<Map<String, Object>> countFlightByBrand();
+
+    @Select("SELECT LPAD(HOUR(intrusion_start_time), 2, '0') AS hourStr, COUNT(*) AS sortieCount " +
+            "FROM alarm " +
+            "WHERE intrusion_start_time >= CURDATE() AND intrusion_start_time < CURDATE() + INTERVAL 1 DAY " +
+            "GROUP BY hourStr " +
+            "ORDER BY hourStr")
+    List<Map<String, Object>> countSortieByHour();
+
+
 }
 
 
