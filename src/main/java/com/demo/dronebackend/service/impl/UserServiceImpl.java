@@ -226,6 +226,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return Result.success(list);
     }
 
+    @Override
+    public Result<?> setUnattended(Boolean flag) {
+        long userId = StpUtil.getLoginIdAsLong();
+        User user = userMapper.selectById(userId);
+        if (flag){
+            user.setUnattended(1);
+        }else {
+            user.setUnattended(0);
+        }
+        userMapper.updateById(user);
+        return Result.success("设置成功");
+    }
+
     // 判断当前用户权限
     private boolean isAdmin(){
         User user = CurrentUserContext.get();

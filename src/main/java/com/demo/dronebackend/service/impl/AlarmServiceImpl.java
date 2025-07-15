@@ -11,23 +11,20 @@ import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
-import com.demo.dronebackend.dto.screen.FlightHistoryDto;
-import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
-import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
-import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
-import com.demo.dronebackend.mapper.DroneMapper;
+import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DateCount;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
-import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.service.TiandituService;
+import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -40,20 +37,14 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.util.*;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**
@@ -72,6 +63,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final ObjectMapper objectMapper;
     private final TiandituService tiandituService;
     private final WebSocketService webSocketService;
+    private final UserMapper userMapper;
+    private final UnattendedService unattendedService;
 
     private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
@@ -112,14 +105,20 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         // 推送到设备绑定用户
         String topic = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
-        webSocketService.sendAlarmListToUser(topic,myPage);
+        webSocketService.sendAlarmListToUser(topic, myPage);
+
+        User user = userMapper.selectById(userId);
+        //TODO:判断是否无人值守模块
+        if (user != null) {
+            unattendedService.onTdoaAlarm(alarm, user);
+        }
         return Result.success("推送成功", null);
     }
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req != null){
-            this.req=req; // 第一次展示，同步展示条件参数
+        if (req != null) {
+            this.req = req; // 第一次展示，同步展示条件参数
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
@@ -155,7 +154,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     // JSON 字符串（可能数据库驱动没有解析）
                     trajectoryList = objectMapper.readValue(
                             (String) rawTrajectory,
-                            new TypeReference<List<Map<Object, Object>>>() {}
+                            new TypeReference<List<Map<Object, Object>>>() {
+                            }
                     );
                 } else if (rawTrajectory instanceof List) {
                     // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
@@ -165,7 +165,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     String json = objectMapper.writeValueAsString(rawTrajectory);
                     trajectoryList = objectMapper.readValue(
                             json,
-                            new TypeReference<List<Map<Object, Object>>>() {}
+                            new TypeReference<List<Map<Object, Object>>>() {
+                            }
                     );
                 }
                 mergedTrajectory.addAll(trajectoryList);
@@ -182,10 +183,11 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     /**
      * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
+     *
      * @param userId 用户id
      * @return 自定义分页数据
      */
-    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId){
+    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
@@ -198,7 +200,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                 userId,
                 sizeLimit * 10 // 查询多一点保证去重后能满足数量
         );
-        if (rawList.isEmpty()){
+        if (rawList.isEmpty()) {
             return new MyPage<RealTimeAlarmDTO>();
         }
         // 转换成DTO
@@ -306,7 +308,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     }
 
     @Override
-    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req){
+    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) {
         // 1. 查询原告警记录
         Alarm alarm = alarmMapper.selectById(alarmId);
         if (alarm == null) {
@@ -408,15 +410,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setDroneId(r.getDroneId());
             dto.setDroneSn(r.getDroneSn());
             dto.setModel(r.getDroneModel());
-            //TODO:
-            dto.setDroneType("国标");
+            dto.setDroneType(r.getDroneType());
             dto.setFrequency(r.getFrequency());
             dto.setLastingTime(r.getLastingTime());
-            //TODO:
+            //TODO:反制
             dto.setDisposal(true);
             dto.setPilotLongitude(r.getPilotLongitude());
             dto.setPilotLatitude(r.getPilotLatitude());
-            //TODO:对应的经纬度
+            //TODO:对应的起飞经纬度
             dto.setTakeoffLongitude(1.11);
             dto.setTakeoffLatitude(1.11);
 
@@ -438,9 +439,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(today.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end,userId);
+        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end, userId);
 
-        Map<Integer,Long> map = raw.stream()
+        Map<Integer, Long> map = raw.stream()
                 .collect(Collectors.toMap(
                         HourlyDroneStaDTO::getHour,
                         HourlyDroneStaDTO::getCount
@@ -450,7 +451,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         for (int i = 0; i < 24; i++) {
             stats.add(new HourlyDroneStaDTO(i, map.getOrDefault(i, 0L)));
         }
-        return Result.success( stats);
+        return Result.success(stats);
     }
 
 
@@ -464,7 +465,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(monday.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end,userId);
+        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end, userId);
 
         // 转换结果时直接使用 getter 方法
         Map<LocalDate, Long> map = raw.stream()
@@ -499,7 +500,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         MonthDroneStatsDTO::getMonth,
                         MonthDroneStatsDTO::getCount
                 ));
-        System.out.println("monthMap:"+monthMap);
+        System.out.println("monthMap:" + monthMap);
 
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -515,14 +516,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> getYearDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getYearDistribution(userId);
-        return Result.success( count);
+        return Result.success(count);
     }
 
     @Override
     public Result<?> getAllDroneDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
-        return Result.success( count);
+        return Result.success(count);
     }
 
 }

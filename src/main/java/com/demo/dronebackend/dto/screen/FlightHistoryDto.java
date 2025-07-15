@@ -24,8 +24,10 @@ public class FlightHistoryDto {
     private Boolean disposal;
     private Double pilotLongitude;
     private Double pilotLatitude;
+    //起飞的
     private Double takeoffLongitude;
     private Double takeoffLatitude;
+    //最后的
     private Double lastLongitude;
     private Double lastLatitude;
 }

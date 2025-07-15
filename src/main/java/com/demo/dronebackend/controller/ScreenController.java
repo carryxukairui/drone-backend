@@ -11,6 +11,7 @@ import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.RegionService;
+import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class ScreenController {
     private final AlarmService alarmService;
     private final DeviceService deviceService;
     private final RegionService regionService;
+    private final UserService userService;
 
     /**
      * 响应硬件发送请求
@@ -180,5 +182,9 @@ public class ScreenController {
     /**
      * 无人值守
      */
+    @PostMapping("/{flag}/unattended")
+    public Result<?> setUnattended(@PathVariable("flag") Boolean flag){
+        return userService.setUnattended(flag);
+    }
 
 }

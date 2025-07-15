@@ -32,4 +32,5 @@ public interface UserService extends IService<User> {
 
     Result<?> userListForBind();
 
+    Result<?> setUnattended(Boolean flag);
 }
