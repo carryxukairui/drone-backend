@@ -1,6 +1,6 @@
 package com.demo.dronebackend.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
+
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.DisposalRecord;
@@ -20,4 +20,10 @@ public interface DisposalRecordService extends IService<DisposalRecord> {
     Result<?> delete(Long id);
 
     Result<?> deleteBatch(List<Long> ids);
+
+
+    /**
+     * 今日告警
+     */
+    Result<?> getDisposalCount();
 }

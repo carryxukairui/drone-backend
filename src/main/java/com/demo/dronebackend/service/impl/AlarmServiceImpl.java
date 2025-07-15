@@ -11,20 +11,23 @@ import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
+import com.demo.dronebackend.dto.screen.FlightHistoryDto;
+import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
+import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
+import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
-import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
-import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.mapper.DroneMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DateCount;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
+import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.service.TiandituService;
-import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,14 +40,20 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**
@@ -117,8 +126,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req != null) {
-            this.req = req; // 第一次展示，同步展示条件参数
+        if (req != null){
+            this.req=req; // 第一次展示，同步展示条件参数
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
@@ -154,8 +163,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     // JSON 字符串（可能数据库驱动没有解析）
                     trajectoryList = objectMapper.readValue(
                             (String) rawTrajectory,
-                            new TypeReference<List<Map<Object, Object>>>() {
-                            }
+                            new TypeReference<List<Map<Object, Object>>>() {}
                     );
                 } else if (rawTrajectory instanceof List) {
                     // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
@@ -165,8 +173,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     String json = objectMapper.writeValueAsString(rawTrajectory);
                     trajectoryList = objectMapper.readValue(
                             json,
-                            new TypeReference<List<Map<Object, Object>>>() {
-                            }
+                            new TypeReference<List<Map<Object, Object>>>() {}
                     );
                 }
                 mergedTrajectory.addAll(trajectoryList);
@@ -183,11 +190,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     /**
      * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
-     *
      * @param userId 用户id
      * @return 自定义分页数据
      */
-    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
+    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId){
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
@@ -200,7 +206,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                 userId,
                 sizeLimit * 10 // 查询多一点保证去重后能满足数量
         );
-        if (rawList.isEmpty()) {
+        if (rawList.isEmpty()){
             return new MyPage<RealTimeAlarmDTO>();
         }
         // 转换成DTO
@@ -309,7 +315,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     }
 
     @Override
-    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) {
+    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req){
         // 1. 查询原告警记录
         Alarm alarm = alarmMapper.selectById(alarmId);
         if (alarm == null) {
@@ -441,9 +447,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(today.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end, userId);
+        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end,userId);
 
-        Map<Integer, Long> map = raw.stream()
+        Map<Integer,Long> map = raw.stream()
                 .collect(Collectors.toMap(
                         HourlyDroneStaDTO::getHour,
                         HourlyDroneStaDTO::getCount
@@ -453,7 +459,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         for (int i = 0; i < 24; i++) {
             stats.add(new HourlyDroneStaDTO(i, map.getOrDefault(i, 0L)));
         }
-        return Result.success(stats);
+        return Result.success( stats);
     }
 
 
@@ -467,7 +473,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(monday.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end, userId);
+        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end,userId);
 
         // 转换结果时直接使用 getter 方法
         Map<LocalDate, Long> map = raw.stream()
@@ -502,7 +508,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         MonthDroneStatsDTO::getMonth,
                         MonthDroneStatsDTO::getCount
                 ));
-        System.out.println("monthMap:" + monthMap);
+        System.out.println("monthMap:"+monthMap);
 
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -518,16 +524,101 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> getYearDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getYearDistribution(userId);
-        return Result.success(count);
+        return Result.success( count);
     }
 
     @Override
     public Result<?> getAllDroneDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
-        return Result.success(count);
+        return Result.success( count);
     }
 
+
+    @Override
+    public Result<?> getMonitorCount() {
+        // 今天、昨天、去年今天
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate lastYearToday = today.minusYears(1);
+
+        Date todayStart = toDate(today.atStartOfDay());
+        Date todayEnd = toDate(today.atTime(LocalTime.MAX));
+
+        Date yesterdayStart = toDate(yesterday.atStartOfDay());
+        Date yesterdayEnd = toDate(yesterday.atTime(LocalTime.MAX));
+
+        Date lastYearStart = toDate(lastYearToday.atStartOfDay());
+        Date lastYearEnd = toDate(lastYearToday.atTime(LocalTime.MAX));
+
+        // 查询各时间段数据量
+        long todayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, todayStart, todayEnd)
+        );
+        long yesterdayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, yesterdayStart, yesterdayEnd)
+        );
+        long lastYearCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, lastYearStart, lastYearEnd)
+        );
+        // 构造返回值
+        return Result.success(new MonitorCountDTO(todayCount,calcRate(todayCount, lastYearCount),calcRate(todayCount, yesterdayCount)));
+    }
+
+    private Date toDate(LocalDateTime ldt) {
+        return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * 增长率计算
+     * @param current 当前值（今天）
+     * @param compare 对比值（昨天或去年）
+     */
+    private String calcRate(long current, long compare) {
+        if (compare == 0) {
+            if (current == 0) {
+                return "0%";
+            } else {
+                return "100%+";// 对比值为0，新增长
+            }
+        }
+        double rate = (current - compare) * 100.0 / compare;
+        return String.format("%.2f%%", rate);
+    }
+
+    @Override
+    public Result<?> getBrandCount() {
+        List<Map<String, Object>> brandCount = alarmMapper.countFlightByBrand();
+        return Result.success(brandCount);
+    }
+
+    @Override
+    public Result<?> getSortiesByHour() {
+        List<Map<String, Object>> raw = alarmMapper.countSortieByHour();
+        // 转换成 Map<String, Integer>，方便补全
+        Map<String, Integer> countMap = new HashMap<>();
+        for (Map<String, Object> row : raw) {
+            String hourStr = (String) row.get("hourStr");
+            Integer count = ((Number) row.get("sortieCount")).intValue();
+            countMap.put(hourStr, count);
+        }
+
+        // 补全 00:00 ~ 23:00 每小时
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            String hour = String.format("%02d", i);// 补零
+            String timeLabel = hour + ":00";// 拼接，如 "01:00"
+            Integer count = countMap.getOrDefault(hour, 0);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("time", timeLabel);
+            entry.put("sortie_count", count);
+            result.add(entry);
+        }
+        return Result.success(result);
+    }
 }
 
 

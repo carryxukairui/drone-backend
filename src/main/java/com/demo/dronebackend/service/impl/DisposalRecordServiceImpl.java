@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
-import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.DisposalRecord;
@@ -17,7 +17,9 @@ import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author 28611
@@ -30,7 +32,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
     implements DisposalRecordService{
 
     private final DisposalRecordMapper mapper;
-    private final UserMapper userMapper;
+    private final AlarmMapper alarmMapper;
     @Override
     public Result<?> DisposalList(DisposalRecordQuery q) {
         Page<DisposalRecord> page = new Page<>(q.getPage(), q.getSize());
@@ -76,7 +78,18 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         if (r == 0) {
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
-        return Result.success( null);
+        return Result.success(null);
+    }
+
+    @Override
+    public Result<?> getDisposalCount() {
+        Long disposedCnt = query().count();
+        Long droneCnt = alarmMapper.getDroneCount();
+        Long unDisposedCnt = droneCnt-disposedCnt;
+        Map<String, Long> disposalCount = new LinkedHashMap<>();
+        disposalCount.put("disposed_count",disposedCnt);
+        disposalCount.put("undisposed_count",unDisposedCnt);
+        return Result.success(disposalCount);
     }
 }
 

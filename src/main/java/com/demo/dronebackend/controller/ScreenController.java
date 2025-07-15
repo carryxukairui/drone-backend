@@ -11,12 +11,14 @@ import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.RegionService;
+import com.demo.dronebackend.service.DisposalRecordService;
 import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,6 +28,8 @@ public class ScreenController {
 
     private final AlarmService alarmService;
     private final DeviceService deviceService;
+    private final DisposalRecordService disposalRecordService;
+
     private final RegionService regionService;
     private final UserService userService;
 
@@ -83,7 +87,8 @@ public class ScreenController {
 
 
     /**
-     * 获取远程设备详情页
+     *  获取远程设备详情页
+     *
      */
     @GetMapping("/devices/{id}")
     public Result<?> getDeviceDetail(@PathVariable("id") String deviceId) {
@@ -166,10 +171,25 @@ public class ScreenController {
      * 今日动态
      */
     @GetMapping("dynamics/monitor-count")
-    public Result<?> getMonitorCount() {
-        return null;
+    public Result<?> getMonitorCount(){
+        return alarmService.getMonitorCount();
     }
 
+    @GetMapping("dynamics/disposal-count")
+    public Result<?> getDisposalCount(){
+        return disposalRecordService.getDisposalCount();
+    }
+
+    @GetMapping("dynamics/brand-count")
+    public Result<?> getBrandCount(){
+        return alarmService.getBrandCount();
+    }
+
+
+    @GetMapping("dynamics/sorties-by-hour")
+    public Result<?> getSortiesByHour(){
+        return alarmService.getSortiesByHour();
+    }
 
     /**
      * 创建预警区、核心区、反制区
