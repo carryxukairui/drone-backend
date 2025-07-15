@@ -19,13 +19,15 @@ public interface RegionMapper extends BaseMapper<Region> {
      * 查询给定用户、给定类型列表的所有区域
      */
     @Select({
+            "<script>",
             "SELECT *",
             "  FROM region",
             " WHERE user_id = #{userId}",
-            "   AND type IN",
-            "      <foreach collection='types' item='t' open='(' separator=',' close=')'>",
-            "        #{t}",
-            "      </foreach>"
+            "   AND type IN ",
+            "     <foreach collection='types' item='t' open='(' separator=',' close=')'>",
+            "       #{t}",
+            "     </foreach>",
+            "</script>"
     })
     List<Region> selectByUserAndTypes(
             @Param("userId") long userId,
