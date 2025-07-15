@@ -16,6 +16,7 @@ public class MyPage<T> {
     private long size; //每页显示数
     private long total;
     private List<T> records;
+    private String socketType;
 
     public MyPage(IPage page) {
         this.current = page.getCurrent();

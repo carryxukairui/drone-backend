@@ -13,6 +13,7 @@ import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.RegionService;
 import com.demo.dronebackend.service.DisposalRecordService;
+import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class ScreenController {
     private final DisposalRecordService disposalRecordService;
 
     private final RegionService regionService;
+    private final UserService userService;
 
     /**
      * 响应硬件发送请求
@@ -49,12 +51,12 @@ public class ScreenController {
      * @param req 请求体
      */
     @GetMapping("alarms")
-    public Result<?> realtimeAlarms(@Valid @ModelAttribute RealtimeAlarmReq req){
+    public Result<?> realtimeAlarms(@Valid @ModelAttribute RealtimeAlarmReq req) {
         return alarmService.realtimeAlarms(req);
     }
 
     @GetMapping("alarms/{id}")
-    public Result<?> getAlarm(@NotBlank @PathVariable String id){
+    public Result<?> getAlarm(@NotBlank @PathVariable String id) {
         return alarmService.getAlarm(id);
     }
 
@@ -71,6 +73,7 @@ public class ScreenController {
 
     /**
      * websocket获取硬件数据
+     *
      * @param report
      * @return
      */
@@ -85,8 +88,7 @@ public class ScreenController {
 
 
     /**
-     *  获取远程设备详情页
-     *
+     * 获取远程设备详情页
      */
     @GetMapping("/devices/{id}")
     public Result<?> getDeviceDetail(@PathVariable("id") String deviceId) {
@@ -200,5 +202,9 @@ public class ScreenController {
     /**
      * 无人值守
      */
+    @PostMapping("/{flag}/unattended")
+    public Result<?> setUnattended(@PathVariable("flag") Boolean flag){
+        return userService.setUnattended(flag);
+    }
 
 }
