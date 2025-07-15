@@ -158,6 +158,6 @@ public class WebSocketService {
         // 假设你有一个全局缓存 lastDeviceMap: userId -> List<DeviceDTO>
         String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
         List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
-        sendDeviceListToUser(SystemConstants.DEVICES_WEBSOCKET_TOPIC+userId, all);
+        sendDeviceListToUser(userId, all);
     }
 }

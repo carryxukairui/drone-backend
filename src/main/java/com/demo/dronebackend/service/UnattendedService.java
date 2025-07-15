@@ -52,19 +52,20 @@ public class UnattendedService {
         System.out.println("接收到TDOA告警");
         // 1. 检查用户和无人机状态
         if (!isValidTrigger(alarm, u)) return;
-
+        System.out.println("开始处理TDOA告警");
         // 2. 区域判断
         if (!isInActionArea(alarm, u)) return;
-
+        System.out.println("区域判断通过");
         // 3. 查找最近的干扰设备
         Device device = findNearestJammer(alarm, u);
         if (device == null) return;
-
+        System.out.println("找到干扰设备："+device);
         // 4. 确定干扰频段
         int band = determineJammerBand(alarm.getFrequency());
-
+        System.out.println("确定干扰频段"+ band);
         // 5. 发送干扰指令并管理定时任务
         handleJammerOperation(alarm.getDroneSn(), device, band);
+        System.out.println("发送干扰指令并管理定时任务");
     }
 
     /**
@@ -92,7 +93,10 @@ public class UnattendedService {
         List<Region> regions = fetchRegions(user.getId(), Arrays.asList(1, 2));
 
         // 用户未定义任何区域时，默认全域触发
-        if (regions.isEmpty()) return true;
+        if (regions.isEmpty()){
+            System.out.println("用户未定义任何区域，默认全域触发");
+            return true;
+        }
 
         // 检查是否在任一有效区域内
         return regions.stream().anyMatch(region ->
