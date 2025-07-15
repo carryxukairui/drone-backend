@@ -302,7 +302,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                 alarmPage.getPages(),
                 alarmPage.getSize(),
                 alarmPage.getTotal(),
-                dtoList
+                dtoList,
+                null
         );
         return Result.success(resultPage);
     }
@@ -428,7 +429,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
         return Result.success(new MyPage<>(
                 pr.getCurrent(), pr.getPages(),
-                pr.getSize(), pr.getTotal(), dtoList));
+                pr.getSize(), pr.getTotal(), dtoList,null
+        ));
     }
 
     @Override

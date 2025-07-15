@@ -100,6 +100,7 @@ public class WebSocketService {
             report.setTotal(filtered.size());
             report.setPages((filtered.size() + pref.getSize() - 1) / pref.getSize());
             report.setRecords(page);
+            report.setSocketType("device");
 
             // 发送
             try {
@@ -123,6 +124,7 @@ public class WebSocketService {
         if (sessions == null || sessions.isEmpty()) return;
 
         try {
+            myPage.setSocketType("alarm");
             // JSON 序列化
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)

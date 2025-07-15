@@ -242,7 +242,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
                 pageResult.getPages(),
                 pageResult.getSize(),
                 pageResult.getTotal(),
-                dtoList
+                dtoList,null
         );
         return Result.success(resultPage);
     }

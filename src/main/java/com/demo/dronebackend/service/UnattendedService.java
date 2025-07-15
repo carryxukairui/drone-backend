@@ -49,6 +49,7 @@ public class UnattendedService {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     public void onTdoaAlarm(Alarm alarm, User u) {
+        System.out.println("接收到TDOA告警");
         // 1. 检查用户和无人机状态
         if (!isValidTrigger(alarm, u)) return;
 
@@ -82,15 +83,6 @@ public class UnattendedService {
         return alarm.getLastLatitude() != null && alarm.getLastLongitude() != null;
     }
 
-    public boolean existsRecentAlarm(String droneSn, Instant since) {
-        // 把 Instant 转回 java.util.Date
-        Date sinceDate = Date.from(since);
-        long count = alarmMapper.selectCount(new LambdaQueryWrapper<Alarm>()
-                .eq(Alarm::getDroneSn, droneSn)
-                .ge(Alarm::getIntrusionStartTime, sinceDate)
-        );
-        return count > 0;
-    }
 
     /**
      * 区域判断逻辑优化
