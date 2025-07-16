@@ -10,35 +10,46 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
 import com.demo.dronebackend.pojo.DateCount;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 
 /**
-* @author 28611
-* @description 针对表【alarm(告警信息表)】的数据库操作Mapper
-* @createDate 2025-07-07 09:44:52
-* @Entity com.demo.dronebackend.pojo.Alarm
-*/
+ * @author 28611
+ * @description 针对表【alarm(告警信息表)】的数据库操作Mapper
+ * @createDate 2025-07-07 09:44:52
+ * @Entity com.demo.dronebackend.pojo.Alarm
+ */
 @Mapper
 public interface AlarmMapper extends BaseMapper<Alarm> {
-    @Select("SELECT a.*, d.type AS d_type " +
-            "FROM alarm a " +
-            "INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId} " +
-            "LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId} " +
-            "WHERE (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime}) " +
-            "AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime}) " +
-            "AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%')) " +
-            "AND (#{type} IS NULL OR d.type = #{type}) " +
-            "ORDER BY a.intrusion_start_time DESC " +
-            "LIMIT #{limit}")
-    List<Map<String, Object>> queryAlarmWithDroneDedup(@Param("startTime") Date startTime,
-                                                       @Param("endTime") Date endTime,
-                                                       @Param("droneModel") String droneModel,
-                                                       @Param("type") String type,
-                                                       @Param("userId") Long userId,
-                                                       @Param("limit") int limit);
+    @Select("""
+            SELECT * FROM (
+                SELECT 
+                    a.*, d.type AS d_type,
+                    ROW_NUMBER() OVER (PARTITION BY a.drone_sn ORDER BY a.intrusion_start_time DESC) AS rn
+                FROM alarm a
+                INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId}
+                LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId}
+                WHERE a.is_disposed = 0
+                AND (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime})
+                AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime})
+                AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%'))
+                AND (#{type} IS NULL OR d.type = #{type})
+            ) t
+            WHERE t.rn = 1
+            ORDER BY t.intrusion_start_time DESC
+            LIMIT #{limit}
+            """)
+    List<Map<String, Object>> queryAlarmWithDroneDedup(
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("droneModel") String droneModel,
+            @Param("type") String type,
+            @Param("userId") Long userId,
+            @Param("limit") int limit
+    );
 
 
     @Select("SELECT * FROM alarm WHERE drone_sn = #{droneSn} " +
@@ -47,7 +58,6 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
     List<Alarm> selectRecentAlarms(@Param("droneSn") String droneSn,
                                    @Param("startTime") Date startTime,
                                    @Param("endTime") Date endTime);
-
 
 
     @Select({
@@ -61,8 +71,8 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
             " GROUP BY HOUR(a.intrusion_start_time)"
     })
     List<HourlyDroneStaDTO> getHourlyDistribution(
-            @Param("start")  Date start,
-            @Param("end")    Date end,
+            @Param("start") Date start,
+            @Param("end") Date end,
             @Param("userId") Long userId
     );
 
@@ -77,14 +87,13 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
     })
     @Results({
             @Result(property = "statDate", column = "statDate"),
-            @Result(property = "cnt",      column = "cnt")
+            @Result(property = "cnt", column = "cnt")
     })
     List<DateCount> getWeeklyCounts(
-            @Param("start")  Date start,
-            @Param("end")    Date end,
+            @Param("start") Date start,
+            @Param("end") Date end,
             @Param("userId") long userId
     );
-
 
 
     @Select({
@@ -102,8 +111,6 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
             @Result(property = "count", column = "count")
     })
     List<MonthDroneStatsDTO> countByMonth(@Param("userId") long userId);
-
-
 
 
     @Select({
