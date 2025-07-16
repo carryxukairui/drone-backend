@@ -33,4 +33,6 @@ public interface DeviceService extends IService<Device> {
     Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq parmSettings);
 
     Result<?> listDisposalRecords(Integer page, Integer size);
+
+    Result<?> getDeviceList();
 }

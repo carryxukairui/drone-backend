@@ -77,29 +77,13 @@ public class WebSocketService {
         for (WebSocketSession session : list) {
             if (!session.isOpen()) continue;
 
-            UserPref pref = (UserPref) session.getAttributes().get("USER_PREF");
-            if (pref == null) pref = new UserPref(DeviceType.TDOA, 1, 10);
-
-            // 过滤
-            Stream<DeviceDTO> stream = allDtos.stream();
-            if (pref.getDeviceType() != null) {
-                UserPref finalPref = pref;
-                stream = stream.filter(d -> finalPref.getDeviceType().equals(d.getDeviceType()));
-            }
-            List<DeviceDTO> filtered = stream.toList();
-
-            int from = (pref.getPage() - 1) * pref.getSize();
-            int to = Math.min(from + pref.getSize(), filtered.size());
-            List<DeviceDTO> page = from < filtered.size()
-                    ? filtered.subList(from, to)
-                    : Collections.emptyList();
 
             MyPage<DeviceDTO> report = new MyPage<>();
-            report.setCurrent(pref.getPage());
-            report.setSize(pref.getSize());
-            report.setTotal(filtered.size());
-            report.setPages((filtered.size() + pref.getSize() - 1) / pref.getSize());
-            report.setRecords(page);
+            report.setCurrent(1);
+            report.setSize(10);
+            report.setTotal(allDtos.size());
+            report.setPages(allDtos.size()/10);
+            report.setRecords(allDtos);
             report.setSocketType("device");
 
             // 发送

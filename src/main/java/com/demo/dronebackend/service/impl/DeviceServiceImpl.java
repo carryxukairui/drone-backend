@@ -8,7 +8,10 @@ import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.hardware.Scanner;
 import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.dto.screen.*;
+import com.demo.dronebackend.dto.screen.DeviceDTO;
+import com.demo.dronebackend.dto.screen.DeviceDetailDTO;
+import com.demo.dronebackend.dto.screen.DeviceSettingReq;
+import com.demo.dronebackend.dto.screen.DisposalRecordDto;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.DeviceMapper;
@@ -29,24 +32,26 @@ import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 
 /**
-* @author 28611
-* @description 针对表【device(设备表)】的数据库操作Service实现
-* @createDate 2025-07-07 09:44:52
-*/
+ * @author 28611
+ * @description 针对表【device(设备表)】的数据库操作Service实现
+ * @createDate 2025-07-07 09:44:52
+ */
 @Service
 @RequiredArgsConstructor
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
-    implements DeviceService{
+        implements DeviceService {
 
     private final DeviceMapper deviceMapper;
     private final DisposalRecordMapper disposalRecordMapper;
     private final UserMapper userMapper;
     private final WebSocketService webSocketService;
     private final TiandituService tiandituService;
+
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -128,11 +133,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (r == 0) {
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
-        return Result.success( null);
+        return Result.success(null);
     }
 
     @Override
-    public Map<String ,Object> websocketDevice(StatusReport report) {
+    public Map<String, Object> websocketDevice(StatusReport report) {
         // 1. 收集所有上报里的设备ID
         List<String> deviceIds = report.getScannerD()
                 .stream()
@@ -152,6 +157,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setPower(dev.getPower());
             dto.setLinkStatus(dev.getLinkStatus());
             dto.setDeviceType(dev.getDeviceType());
+            dto.setLongitude(dev.getLongitude());
+            dto.setLatitude(dev.getLatitude());
             String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
             dto.setLocation(location);
             // 加入到对应用户的列表
@@ -186,10 +193,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
 
         device.setPower(parmaSettings.getPower());
-        deviceMapper.updateById( device);
+        deviceMapper.updateById(device);
 
         DisposalRecord disposalRecord = disposalRecordMapper.selectOne(new LambdaQueryWrapper<DisposalRecord>()
                 .eq(DisposalRecord::getDeviceId, deviceId));
+        if (disposalRecord == null)
+            disposalRecord = new DisposalRecord();
+
         disposalRecord.setG09Onoff(parmaSettings.getG09OnOff());
         disposalRecord.setG16Onoff(parmaSettings.getG16OnOff());
         disposalRecord.setG24Onoff(parmaSettings.getG24OnOff());
@@ -205,13 +215,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     @Override
     public Result<?> listDisposalRecords(Integer page, Integer size) {
         long userId = StpUtil.getLoginIdAsLong();
-        Page<DisposalRecord> pr  = new Page<>(page, size);
+        Page<DisposalRecord> pr = new Page<>(page, size);
         List<String> deviceIds = deviceMapper.selectList(
                 new LambdaQueryWrapper<Device>()
                         .eq(Device::getDeviceUserId, userId)
         ).stream().map(Device::getId).toList();
 
-        if(deviceIds.isEmpty()){
+        if (deviceIds.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
 
@@ -233,7 +243,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             );
             dto.setUnattended(r.getG09Onoff()); // 或者根据业务设定
             // 拼接 switch 状态
-            dto.setSwitchStatus(r.getG09Onoff() ==1, r.getG16Onoff() == 1,
+            dto.setSwitchStatus(r.getG09Onoff() == 1, r.getG16Onoff() == 1,
                     r.getG24Onoff() == 1, r.getG58Onoff() == 1);
             return dto;
         }).toList();
@@ -242,10 +252,38 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
                 pageResult.getPages(),
                 pageResult.getSize(),
                 pageResult.getTotal(),
-                dtoList,null
+                dtoList, null
         );
         return Result.success(resultPage);
     }
+
+    @Override
+    public Result<List<DeviceDTO>> getDeviceList() {
+        long userId = StpUtil.getLoginIdAsLong();
+
+
+        List<Device> devices = deviceMapper.selectList(new LambdaQueryWrapper<Device>()
+                .eq(Device::getDeviceUserId, userId));
+
+        List<DeviceDTO> dtos = devices.stream().map(d -> {
+            DeviceDTO dto = new DeviceDTO();
+            dto.setDeviceId(d.getId());
+            dto.setDeviceName(d.getDeviceName());
+            dto.setDeviceType(d.getDeviceType());
+            dto.setCoverRange(d.getCoverRange());
+            dto.setPower(d.getPower());
+            dto.setLinkStatus(d.getLinkStatus());
+            dto.setLatitude(d.getLatitude());
+            dto.setLongitude(d.getLongitude());
+            String location = tiandituService.reverseGeocode(d.getLongitude(), d.getLatitude());
+            dto.setLocation(location);
+            return dto;
+        }).collect(Collectors.toList());
+
+
+        return Result.success(dtos);
+    }
+
 
 }
 

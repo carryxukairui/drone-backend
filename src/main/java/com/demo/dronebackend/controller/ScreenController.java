@@ -85,6 +85,15 @@ public class ScreenController {
         return deviceService.websocketDevice(report);
     }
 
+    /**
+     * 首次获取设备列表
+     */
+    @GetMapping("/devices")
+    public Result<?> getDeviceList() {
+        return deviceService.getDeviceList();
+    }
+
+
 
     /**
      *  获取远程设备详情页
