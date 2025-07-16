@@ -14,6 +14,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("admin/devices")
 @RequiredArgsConstructor
@@ -95,9 +97,10 @@ public class DeviceController {
 
     @PostMapping("/sub")
     @CrossOrigin
-    public String sub(@RequestBody StatusReport statusReport) {
+    public Map<String, Object> sub(@RequestBody StatusReport statusReport) {
         System.out.println(statusReport);
-        return "Subscribed to topic: " ;
+        return deviceService.websocketDevice(statusReport);
+
     }
 
 

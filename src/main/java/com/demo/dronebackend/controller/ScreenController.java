@@ -3,7 +3,6 @@ package com.demo.dronebackend.controller;
 
 import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.DeviceSettingReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
@@ -17,6 +16,7 @@ import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,7 +67,7 @@ public class ScreenController {
      * @return
      */
     @PostMapping("/flight/history")
-    public Result<?> historyList(@Valid @RequestBody FlightHistoryQuery query) {
+    public Result<?> historyList( @RequestBody FlightHistoryQuery query) {
         return alarmService.historyList(query);
     }
 
@@ -86,6 +86,15 @@ public class ScreenController {
         return deviceService.websocketDevice(report);
     }
 
+    /**
+     * 首次获取设备列表
+     */
+    @GetMapping("/devices")
+    public Result<?> getDeviceList() {
+        return deviceService.getDeviceList();
+    }
+
+
 
     /**
      * 获取远程设备详情页
@@ -99,7 +108,7 @@ public class ScreenController {
      * 提交反制参数设置
      */
     @PostMapping("/devices/{id}/param-settings")
-    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId, @RequestBody DeviceSettingReq paramSettings) {
+    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId, @RequestBody DeviceSettingReq paramSettings) throws MqttException {
         return deviceService.updateDeviceParamSettings(deviceId, paramSettings);
     }
 

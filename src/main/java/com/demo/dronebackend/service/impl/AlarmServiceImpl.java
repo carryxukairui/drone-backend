@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.constant.SystemConstants;
-import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
@@ -247,32 +246,21 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
-        List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
-            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
 
-            AlarmDTO dto = new AlarmDTO();
-            dto.setId(a.getId());
-            dto.setDroneModel(a.getDroneModel());
-            dto.setIntrusionTime(a.getIntrusionStartTime());
-            dto.setLocation(location);
-            dto.setType(a.getDroneType());
-            dto.setDroneSn(a.getDroneSn());
-            return dto;
-        }).toList();
 
-        MyPage<AlarmDTO> resultPage = new MyPage<>(
+        MyPage<Alarm> resultPage = new MyPage<>(
                 alarmPage.getCurrent(),
                 alarmPage.getPages(),
                 alarmPage.getSize(),
                 alarmPage.getTotal(),
-                dtoList,
+                alarmPage.getRecords(),
                 null
         );
         return Result.success(resultPage);
     }
 
     @Override
-    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) {
+    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req){
         // 1. 查询原告警记录
         Alarm alarm = alarmMapper.selectById(alarmId);
         if (alarm == null) {
@@ -379,13 +367,12 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setLastingTime(r.getLastingTime());
             //TODO:反制
             dto.setDisposal(true);
-            dto.setPilotLongitude(r.getPilotLongitude());
-            dto.setPilotLatitude(r.getPilotLatitude());
-            //TODO:对应的起飞经纬度
-            dto.setTakeoffLongitude(1.11);
-            dto.setTakeoffLatitude(1.11);
+            dto.setPilotLongitude(r.getBackLongitude());
+            dto.setPilotLatitude(r.getLastLatitude());
 
-            dto.setLastLongitude(r.getLastLongitude());
+            dto.setTakeoffLongitude(r.getLastLongitude());
+            dto.setTakeoffLatitude(r.getLastLatitude());
+            dto.setLastLongitude(r.getBackLongitude());
             dto.setLastLatitude(r.getLastLatitude());
             return dto;
         }).toList();
@@ -404,9 +391,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(today.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end, userId);
+        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end,userId);
 
-        Map<Integer, Long> map = raw.stream()
+        Map<Integer,Long> map = raw.stream()
                 .collect(Collectors.toMap(
                         HourlyDroneStaDTO::getHour,
                         HourlyDroneStaDTO::getCount
@@ -430,7 +417,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(monday.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end, userId);
+        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end,userId);
 
         // 转换结果时直接使用 getter 方法
         Map<LocalDate, Long> map = raw.stream()

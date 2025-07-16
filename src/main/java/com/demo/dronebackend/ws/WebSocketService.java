@@ -68,8 +68,8 @@ public class WebSocketService {
     /**
      * 给指定用户推送设备状态（替代原来的全局广播）
      */
-    public void sendDeviceListToUser(String userId,  List<DeviceDTO>  allDtos) {
-        String json = convertToJson(allDtos);
+    public void sendDeviceListToUser(String userId,  DeviceDTO  allDto) {
+        String json = convertToJson(allDto);
         List<WebSocketSession> list = sessionsByUser.get(userId);
         if (list == null) return;
 
@@ -77,29 +77,16 @@ public class WebSocketService {
         for (WebSocketSession session : list) {
             if (!session.isOpen()) continue;
 
-            UserPref pref = (UserPref) session.getAttributes().get("USER_PREF");
-            if (pref == null) pref = new UserPref(DeviceType.TDOA, 1, 10);
 
-            // 过滤
-            Stream<DeviceDTO> stream = allDtos.stream();
-            if (pref.getDeviceType() != null) {
-                UserPref finalPref = pref;
-                stream = stream.filter(d -> finalPref.getDeviceType().equals(d.getDeviceType()));
-            }
-            List<DeviceDTO> filtered = stream.toList();
-
-            int from = (pref.getPage() - 1) * pref.getSize();
-            int to = Math.min(from + pref.getSize(), filtered.size());
-            List<DeviceDTO> page = from < filtered.size()
-                    ? filtered.subList(from, to)
-                    : Collections.emptyList();
+            List<DeviceDTO> allDtos = new ArrayList<>();
+            allDtos.add(allDto);
 
             MyPage<DeviceDTO> report = new MyPage<>();
-            report.setCurrent(pref.getPage());
-            report.setSize(pref.getSize());
-            report.setTotal(filtered.size());
-            report.setPages((filtered.size() + pref.getSize() - 1) / pref.getSize());
-            report.setRecords(page);
+            report.setCurrent(1);
+            report.setSize(10);
+            report.setTotal(allDtos.size());
+            report.setPages(allDtos.size());
+            report.setRecords(allDtos);
             report.setSocketType("device");
 
             // 发送
@@ -143,7 +130,7 @@ public class WebSocketService {
     /**
      * JSON 序列化
      */
-    private String convertToJson( List<DeviceDTO> report) {
+    private String convertToJson( DeviceDTO report) {
         ObjectMapper mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         try {
@@ -156,8 +143,8 @@ public class WebSocketService {
     /** 当偏好变更时，前端也可以直接调用： */
     public void pushToSession(WebSocketSession session) {
         // 假设你有一个全局缓存 lastDeviceMap: userId -> List<DeviceDTO>
-        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
-        List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
-        sendDeviceListToUser(userId, all);
+//        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
+//        List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
+//        sendDeviceListToUser(userId, all);
     }
 }

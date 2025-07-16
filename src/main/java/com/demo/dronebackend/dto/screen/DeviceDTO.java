@@ -9,6 +9,8 @@ public class DeviceDTO{
     private Double coverRange;
     private Double power;
     private Integer linkStatus;
+    private Double longitude;
+    private Double latitude;
     private String location;
     private String deviceType;
 }
