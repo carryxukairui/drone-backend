@@ -7,19 +7,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.constant.SystemConstants;
-import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
-import com.demo.dronebackend.dto.screen.FlightHistoryDto;
-import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
-import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
-import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
-import com.demo.dronebackend.mapper.DroneMapper;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
@@ -27,7 +22,6 @@ import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DateCount;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
-import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.CurrentUserContext;
@@ -43,16 +37,10 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.*;
-import java.util.*;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**
@@ -289,25 +277,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
-        List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
-            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
 
-            AlarmDTO dto = new AlarmDTO();
-            dto.setId(a.getId());
-            dto.setDroneModel(a.getDroneModel());
-            dto.setIntrusionTime(a.getIntrusionStartTime());
-            dto.setLocation(location);
-            dto.setType(a.getDroneType());
-            dto.setDroneSn(a.getDroneSn());
-            return dto;
-        }).toList();
 
-        MyPage<AlarmDTO> resultPage = new MyPage<>(
+        MyPage<Alarm> resultPage = new MyPage<>(
                 alarmPage.getCurrent(),
                 alarmPage.getPages(),
                 alarmPage.getSize(),
                 alarmPage.getTotal(),
-                dtoList,
+                alarmPage.getRecords(),
                 null
         );
         return Result.success(resultPage);
@@ -421,13 +398,12 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setLastingTime(r.getLastingTime());
             //TODO:反制
             dto.setDisposal(true);
-            dto.setPilotLongitude(r.getPilotLongitude());
-            dto.setPilotLatitude(r.getPilotLatitude());
-            //TODO:对应的起飞经纬度
-            dto.setTakeoffLongitude(1.11);
-            dto.setTakeoffLatitude(1.11);
+            dto.setPilotLongitude(r.getBackLongitude());
+            dto.setPilotLatitude(r.getLastLatitude());
 
-            dto.setLastLongitude(r.getLastLongitude());
+            dto.setTakeoffLongitude(r.getLastLongitude());
+            dto.setTakeoffLatitude(r.getLastLatitude());
+            dto.setLastLongitude(r.getBackLongitude());
             dto.setLastLatitude(r.getLastLatitude());
             return dto;
         }).toList();

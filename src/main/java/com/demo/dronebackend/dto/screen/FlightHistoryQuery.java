@@ -5,16 +5,17 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 
 @Data
 public class FlightHistoryQuery {
     /** 起飞时间起始 */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startTime;
+    private Date startTime;
     /** 起飞时间结束 */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endTime;
+    private Date endTime;
     /** 地图框选或行政区划，前端可传 GeoJSON 或行政区码 */
     private Map<String, Object> region;
     /** 无人机编号 */

@@ -23,13 +23,18 @@ import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
+import com.demo.dronebackend.service.MqttService;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.RequiredArgsConstructor;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,6 +56,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final UserMapper userMapper;
     private final WebSocketService webSocketService;
     private final TiandituService tiandituService;
+    private final MqttService mqttService;
+    private static final String topic = "device/command/startJam";
 
     @Override
     public Result<?> addDevice(DeviceReq req) {
@@ -138,39 +145,36 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
     @Override
     public Map<String, Object> websocketDevice(StatusReport report) {
-        // 1. 收集所有上报里的设备ID
-        List<String> deviceIds = report.getScannerD()
-                .stream()
-                .map(Scanner::getId)
-                .toList();
 
-        List<Device> devices = deviceMapper.selectBatchIds(deviceIds);
 
-        Map<String, List<DeviceDTO>> dtoByUser = new HashMap<>();
-        for (Device dev : devices) {
-            String userId = String.valueOf(dev.getDeviceUserId());
+        Device dev = deviceMapper.selectById(report.getId());
+        if(dev == null)
+            return null;
+        String userId = String.valueOf(dev.getDeviceUserId());
+        dev.setLongitude(report.getLng());
+        dev.setLatitude(report.getLat());
+        dev.setLinkStatus(report.getLinkState());
+        dev.setIp(report.getIp());
+        dev.setStationId(report.getStationId());
 
-            DeviceDTO dto = new DeviceDTO();
-            dto.setDeviceId(dev.getId());
-            dto.setDeviceName(dev.getDeviceName());
-            dto.setCoverRange(dev.getCoverRange());
-            dto.setPower(dev.getPower());
-            dto.setLinkStatus(dev.getLinkStatus());
-            dto.setDeviceType(dev.getDeviceType());
-            dto.setLongitude(dev.getLongitude());
-            dto.setLatitude(dev.getLatitude());
-            String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
-            dto.setLocation(location);
-            // 加入到对应用户的列表
-            dtoByUser.computeIfAbsent(userId, k -> new ArrayList<>())
-                    .add(dto);
-        }
-        // 4. 分用户推送：为每个用户构造子报告并发送
-        dtoByUser.forEach((userId, listOfDto) -> {
-            // 1. 先把前缀加上
-            String topic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
-            webSocketService.sendDeviceListToUser(topic, listOfDto);
-        });
+        deviceMapper.updateById(dev);
+
+        DeviceDTO dto = new DeviceDTO();
+        dto.setDeviceId(dev.getId());
+        dto.setDeviceName(dev.getDeviceName());
+        dto.setCoverRange(dev.getCoverRange());
+        dto.setPower(dev.getPower());
+        dto.setLinkStatus(dev.getLinkStatus());
+        dto.setDeviceType(dev.getDeviceType());
+        dto.setLongitude(dev.getLongitude());
+        dto.setLatitude(dev.getLatitude());
+        String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
+        dto.setLocation(location);
+
+
+        String deviceTopic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+        webSocketService.sendDeviceListToUser(deviceTopic, dto);
+
 
         return Map.of("code", 200, "msg", "Success");
     }
@@ -186,29 +190,47 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     }
 
     @Override
-    public Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq parmaSettings) {
+    public Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq paramSettings) throws MqttException {
         Device device = deviceMapper.selectById(deviceId);
         if (device == null) {
             return Result.error("设备不存在");
         }
 
-        device.setPower(parmaSettings.getPower());
+        device.setPower(paramSettings.getPower());
         deviceMapper.updateById(device);
 
-        DisposalRecord disposalRecord = disposalRecordMapper.selectOne(new LambdaQueryWrapper<DisposalRecord>()
-                .eq(DisposalRecord::getDeviceId, deviceId));
-        if (disposalRecord == null)
-            disposalRecord = new DisposalRecord();
+        DisposalRecord dr = disposalRecordMapper.selectOne(
+                new LambdaQueryWrapper<DisposalRecord>()
+                        .eq(DisposalRecord::getDeviceId, deviceId)
+        );
+        if (dr == null) {
+            dr = new DisposalRecord();
+            dr.setDeviceId(deviceId);
+        }
+        dr.setG09Onoff(paramSettings.getG09OnOff());
+        dr.setG16Onoff(paramSettings.getG16OnOff());
+        dr.setG24Onoff(paramSettings.getG24OnOff());
+        dr.setG58Onoff(paramSettings.getG58OnOff());
+        dr.setDuration(paramSettings.getDuration());
+        disposalRecordMapper.updateById(dr);
 
-        disposalRecord.setG09Onoff(parmaSettings.getG09OnOff());
-        disposalRecord.setG16Onoff(parmaSettings.getG16OnOff());
-        disposalRecord.setG24Onoff(parmaSettings.getG24OnOff());
-        disposalRecord.setG58Onoff(parmaSettings.getG58OnOff());
-        disposalRecord.setDuration(parmaSettings.getDuration());
-        disposalRecordMapper.updateById(disposalRecord);
 
+        Map<String, Object> payloadMap = new LinkedHashMap<>();
+        payloadMap.put("deviceID", deviceId);
+        payloadMap.put("g09_onoff", dr.getG09Onoff());
+        payloadMap.put("g16_onoff", dr.getG16Onoff());
+        payloadMap.put("g24_onoff", dr.getG24Onoff());
+        payloadMap.put("g58_onoff", dr.getG58Onoff());
+        payloadMap.put("duration", dr.getDuration());
         //TODO: 将设备修改信息通过MQTT发送给硬件
-
+        try {
+            String payload = new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .writeValueAsString(payloadMap);
+            mqttService.publish(topic, payload);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return Result.success(null);
     }
 

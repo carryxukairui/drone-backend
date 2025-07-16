@@ -68,8 +68,8 @@ public class WebSocketService {
     /**
      * 给指定用户推送设备状态（替代原来的全局广播）
      */
-    public void sendDeviceListToUser(String userId,  List<DeviceDTO>  allDtos) {
-        String json = convertToJson(allDtos);
+    public void sendDeviceListToUser(String userId,  DeviceDTO  allDto) {
+        String json = convertToJson(allDto);
         List<WebSocketSession> list = sessionsByUser.get(userId);
         if (list == null) return;
 
@@ -78,11 +78,14 @@ public class WebSocketService {
             if (!session.isOpen()) continue;
 
 
+            List<DeviceDTO> allDtos = new ArrayList<>();
+            allDtos.add(allDto);
+
             MyPage<DeviceDTO> report = new MyPage<>();
             report.setCurrent(1);
             report.setSize(10);
             report.setTotal(allDtos.size());
-            report.setPages(allDtos.size()/10);
+            report.setPages(allDtos.size());
             report.setRecords(allDtos);
             report.setSocketType("device");
 
@@ -127,7 +130,7 @@ public class WebSocketService {
     /**
      * JSON 序列化
      */
-    private String convertToJson( List<DeviceDTO> report) {
+    private String convertToJson( DeviceDTO report) {
         ObjectMapper mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         try {
@@ -140,8 +143,8 @@ public class WebSocketService {
     /** 当偏好变更时，前端也可以直接调用： */
     public void pushToSession(WebSocketSession session) {
         // 假设你有一个全局缓存 lastDeviceMap: userId -> List<DeviceDTO>
-        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
-        List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
-        sendDeviceListToUser(userId, all);
+//        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);
+//        List<DeviceDTO> all = lastDeviceMap.getOrDefault(userId, Collections.emptyList());
+//        sendDeviceListToUser(userId, all);
     }
 }

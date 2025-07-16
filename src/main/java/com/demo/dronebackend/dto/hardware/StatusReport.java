@@ -8,6 +8,12 @@ import java.util.List;
 // 设备状态上报数据结构
 public class StatusReport {
     private String stationId;
-    private List<Scanner> scannerD;
-
+    private List<String> scannerD;
+    private String id;
+    private Integer linkState;
+    private Double dataRate;
+    private Integer foundTarget;
+    private Double lng;
+    private Double lat;
+    private String ip;
 }
