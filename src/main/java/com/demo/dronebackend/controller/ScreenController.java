@@ -60,6 +60,11 @@ public class ScreenController {
         return alarmService.getAlarm(id);
     }
 
+    @GetMapping("alarms/dispose/{id}")
+    public Result<?> disposeDrone(@NotBlank @PathVariable String id) {
+        return alarmService.disposeDrone(id);
+    }
+
     /**
      * 获取飞行历史
      *

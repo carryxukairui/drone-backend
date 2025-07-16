@@ -25,22 +25,22 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface AlarmMapper extends BaseMapper<Alarm> {
     @Select("""
-            SELECT * FROM (
-                SELECT 
-                    a.*, d.type AS d_type,
-                    ROW_NUMBER() OVER (PARTITION BY a.drone_sn ORDER BY a.intrusion_start_time DESC) AS rn
-                FROM alarm a
-                INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId}
-                LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId}
-                WHERE a.is_disposed = 0
-                AND (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime})
-                AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime})
-                AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%'))
-                AND (#{type} IS NULL OR d.type = #{type})
-            ) t
-            WHERE t.rn = 1
-            ORDER BY t.intrusion_start_time DESC
-            LIMIT #{limit}
+                SELECT * FROM (
+                    SELECT 
+                        a.*, d.type AS d_type,
+                        ROW_NUMBER() OVER (PARTITION BY a.drone_sn ORDER BY a.intrusion_start_time DESC) AS rn
+                    FROM alarm a
+                    INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId}
+                    LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId}
+                    WHERE 
+                        (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime})
+                        AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime})
+                        AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%'))
+                        AND (#{type} IS NULL OR d.type = #{type})
+                ) t
+                WHERE t.rn = 1 AND t.is_disposed = 0
+                ORDER BY t.intrusion_start_time DESC
+                LIMIT #{limit}
             """)
     List<Map<String, Object>> queryAlarmWithDroneDedup(
             @Param("startTime") Date startTime,
@@ -51,13 +51,21 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
             @Param("limit") int limit
     );
 
-
-    @Select("SELECT * FROM alarm WHERE drone_sn = #{droneSn} " +
-            "AND intrusion_start_time BETWEEN #{startTime} AND #{endTime} " +
-            "ORDER BY intrusion_start_time ASC")
-    List<Alarm> selectRecentAlarms(@Param("droneSn") String droneSn,
-                                   @Param("startTime") Date startTime,
-                                   @Param("endTime") Date endTime);
+    @Select("""
+                SELECT a.* 
+                FROM alarm a
+                INNER JOIN device dev ON a.scanID = dev.id
+                WHERE a.drone_sn = #{droneSn}
+                  AND dev.device_user_id = #{userId}
+                  AND a.intrusion_start_time BETWEEN #{startTime} AND #{endTime}
+                ORDER BY a.intrusion_start_time ASC
+            """)
+    List<Alarm> selectRecentAlarms(
+            @Param("droneSn") String droneSn,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("userId") Long userId
+    );
 
 
     @Select({
@@ -131,20 +139,55 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
     })
     long getYearDistribution(@Param("userId") long userId);
 
-    @Select("SELECT COUNT(DISTINCT drone_sn) FROM alarm")
-    Long getDroneCount();
 
-    @Select("SELECT SUBSTRING_INDEX(drone_model, ' ', 1) AS brand, COUNT(*) AS sortie_count " +
-            "FROM alarm " +
-            "GROUP BY brand")
-    List<Map<String, Object>> countFlightByBrand();
+    @Select("""
+                SELECT COUNT(*) 
+                FROM alarm a
+                INNER JOIN device d ON a.scanID = d.id
+                WHERE d.device_user_id = #{userId}
+                  AND a.intrusion_start_time BETWEEN #{start} AND #{end}
+            """)
+    Long countAlarmsByTime(
+            @Param("userId") Long userId,
+            @Param("start") Date start,
+            @Param("end") Date end
+    );
 
-    @Select("SELECT LPAD(HOUR(intrusion_start_time), 2, '0') AS hourStr, COUNT(*) AS sortieCount " +
-            "FROM alarm " +
-            "WHERE intrusion_start_time >= CURDATE() AND intrusion_start_time < CURDATE() + INTERVAL 1 DAY " +
-            "GROUP BY hourStr " +
-            "ORDER BY hourStr")
-    List<Map<String, Object>> countSortieByHour();
+    @Select("""
+                SELECT COUNT(*) AS total
+                FROM (
+                    SELECT 
+                        a.drone_sn,
+                        ROW_NUMBER() OVER (PARTITION BY a.drone_sn ORDER BY a.intrusion_start_time DESC) AS rn,
+                        a.is_disposed
+                    FROM alarm a
+                    INNER JOIN device dev ON a.scanID = dev.id
+                    WHERE dev.device_user_id = #{userId}
+                ) t
+                WHERE t.rn = 1 AND t.is_disposed = 0
+            """)
+    Long countUndisposedAlarms(@Param("userId") Long userId);
+
+    @Select("""
+                SELECT SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand, COUNT(*) AS sortie_count
+                FROM alarm a
+                INNER JOIN device d ON a.scanID = d.id
+                WHERE d.device_user_id = #{userId}
+                GROUP BY brand
+            """)
+    List<Map<String, Object>> countFlightByBrand(@Param("userId") Long userId);
+
+    @Select("""
+                SELECT LPAD(HOUR(a.intrusion_start_time), 2, '0') AS hourStr, COUNT(*) AS sortieCount
+                FROM alarm a
+                INNER JOIN device d ON a.scanID = d.id
+                WHERE d.device_user_id = #{userId}
+                  AND a.intrusion_start_time >= CURDATE()
+                  AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
+                GROUP BY hourStr
+                ORDER BY hourStr
+            """)
+    List<Map<String, Object>> countSortieByHour(@Param("userId") Long userId);
 
 
 }

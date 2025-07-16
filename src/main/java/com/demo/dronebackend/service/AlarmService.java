@@ -29,6 +29,9 @@ public interface AlarmService extends IService<Alarm> {
 
     Result<?> getAlarm(String id);
 
+    Result<?> disposeDrone(String id);
+
+
 
     /**
      * 系统管理-感知记录管理
@@ -62,4 +65,5 @@ public interface AlarmService extends IService<Alarm> {
     Result<?> getBrandCount();
 
     Result<?> getSortiesByHour();
+
 }

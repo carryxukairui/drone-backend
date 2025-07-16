@@ -29,6 +29,9 @@ public class Result<T> {
     public static <T> Result<T> success(String msg ,T data) {
         return new Result<T>(200, msg, data);
     }
+    public static <T> Result<T> success(String msg) {
+        return new Result<T>(200, msg, null);
+    }
 
     public static Object notLogin(String 未登录) {
         return new Result<>(401, 未登录, null);

@@ -1,6 +1,9 @@
 package com.demo.dronebackend.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
@@ -9,6 +12,7 @@ import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DisposalRecordService;
@@ -66,7 +70,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         if (r == 0) {
             throw new BusinessException("干扰记录不存在或已删除，ID=" + id);
         }
-        return Result.success(null);
+        return Result.success("删除成功");
     }
 
     @Override
@@ -78,14 +82,16 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         if (r == 0) {
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
-        return Result.success(null);
+        return Result.success("批量删除成功");
     }
 
     @Override
     public Result<?> getDisposalCount() {
-        Long disposedCnt = query().count();
-        Long droneCnt = alarmMapper.getDroneCount();
-        Long unDisposedCnt = droneCnt-disposedCnt;
+        QueryWrapper<Alarm> wrapper = new QueryWrapper<>();
+        wrapper.eq("is_disposed", 1);
+        Long disposedCnt = alarmMapper.selectCount(wrapper);
+        Long userId = StpUtil.getLoginIdAsLong();
+        Long unDisposedCnt = alarmMapper.countUndisposedAlarms(userId);
         Map<String, Long> disposalCount = new LinkedHashMap<>();
         disposalCount.put("disposed_count",disposedCnt);
         disposalCount.put("undisposed_count",unDisposedCnt);
