@@ -208,7 +208,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setId(((Number) row.get("id")).longValue());
             dto.setDroneModel((String) row.get("drone_model"));
             dto.setDroneSn((String) row.get("drone_sn"));
-            dto.setType((String) row.get("d_type"));
+            String type = (String)row.get("d_type");
+            if (type==null) type="gray";
+            dto.setType(type);
             Object intrusionTimeObj = row.get("intrusion_start_time");
             if (intrusionTimeObj instanceof LocalDateTime) {
                 dto.setIntrusionTime(Timestamp.valueOf((LocalDateTime) intrusionTimeObj));

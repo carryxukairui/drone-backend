@@ -20,6 +20,8 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import java.net.URI;
 import java.util.Map;
 
+import static com.demo.dronebackend.constant.SystemConstants.SA_TOKEN;
+
 
 @Configuration
 @EnableWebSocket
@@ -42,8 +44,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                    Map<String, Object> attributes) throws Exception {
                         URI uri = request.getURI();
                         String query = uri.getQuery(); // 例：token=eyJhbGciOiJIUzI1NiIsInR
-                        if (query != null && query.startsWith("satoken=")) {
-                            String token = query.substring("satoken=".length());
+                        if (query != null && query.startsWith(SA_TOKEN)) {
+                            String token = query.substring(SA_TOKEN.length());
                             // 登录校验
                             StpUtil.checkLogin();
                             String userId = StpUtil.getLoginIdByToken(token).toString();
@@ -75,8 +77,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                    Map<String, Object> attributes) throws Exception {
                         URI uri = request.getURI();
                         String query = uri.getQuery(); // 例：token=eyJhbGciOiJIUzI1NiIsInR
-                        if (query != null && query.startsWith("satoken=")) {
-                            String token = query.substring("satoken=".length());
+                        if (query != null && query.startsWith(SA_TOKEN)) {
+                            String token = query.substring(SA_TOKEN.length());
                             // 登录校验
                             StpUtil.checkLogin();
                             String userId = StpUtil.getLoginIdByToken(token).toString();
