@@ -97,8 +97,7 @@ public class ScreenController {
 
 
     /**
-     *  获取远程设备详情页
-     *
+     * 获取远程设备详情页
      */
     @GetMapping("/devices/{id}")
     public Result<?> getDeviceDetail(@PathVariable("id") String deviceId) {

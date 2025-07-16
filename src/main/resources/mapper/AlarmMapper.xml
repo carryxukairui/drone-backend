@@ -32,6 +32,7 @@
             <result property="trajectory" column="trajectory" jdbcType="OTHER"/>
             <result property="stationId" column="station_id" jdbcType="VARCHAR"/>
             <result property="detectType" column="detect_type" jdbcType="TINYINT"/>
+            <result property="isDisposed" column="is_disposed" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -43,7 +44,7 @@
         vertical_heading_angle,type,scanIDs,
         scanID,lasting_time,back_longitude,
         back_latitude,pilot_longitude,pilot_latitude,
-        trajectory,station_id,detect_type
+        trajectory,station_id,detect_type,is_disposed
     </sql>
 
     <select id="getWeeklyDistribution" resultType="com.demo.dronebackend.dto.screen.WeekDroneStatsDTO">

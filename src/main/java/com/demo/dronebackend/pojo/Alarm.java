@@ -72,4 +72,7 @@ public class Alarm {
     private String stationId;
 
     private Integer detectType;
+
+    private Integer isDisposed;
+
 }

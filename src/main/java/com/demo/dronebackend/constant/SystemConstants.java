@@ -27,7 +27,7 @@ public class SystemConstants {
     /**
      * 请求体的satoken
      */
-    public static final String SA_TOKEN = "satoken";
+    public static final String SA_TOKEN = "satoken=";
 
     /**
      * 合并指定时间范围内同一无人机触发的所有轨迹信息，可根据业务调整

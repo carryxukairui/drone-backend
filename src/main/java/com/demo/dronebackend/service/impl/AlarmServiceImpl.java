@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.constant.SystemConstants;
+import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
@@ -36,11 +37,21 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+<<<<<<<<< Temporary merge branch 1
 import java.time.*;
+import java.util.*;
+import java.time.format.DateTimeFormatter;
+=========
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+>>>>>>>>> Temporary merge branch 2
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**
@@ -66,31 +77,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> handleDroneReport(DroneReport report) {
-        Alarm alarm = new Alarm();
-        alarm.setDroneModel(report.getDroneModel());
-        alarm.setLastLongitude(report.getLongitude());
-        alarm.setLastLatitude(report.getLatitude());
-        alarm.setLastAltitude(report.getHeight());
-        alarm.setTakeoffTime(report.getIntrusionStartTime());
-        Date landingTime = new Date(report.getIntrusionStartTime().getTime() + (long) (report.getLastingTime() * 1000));
-        alarm.setLandingTime(landingTime);
-        alarm.setIntrusionStartTime(report.getIntrusionStartTime());
-        alarm.setDroneId(report.getStationId() + "-" + System.currentTimeMillis());
-        alarm.setDroneSn(report.getDroneUUID());
-        alarm.setFrequency(report.getFrequency());
-        alarm.setBandwidth(report.getBandwidth());
-        alarm.setSpeed(report.getSpeed());
-        alarm.setHorizontalHeadingAngle(report.getHorizontalHeadingAngle());
-        alarm.setVerticalHeadingAngle(report.getVerticalHeadingAngle());
-        alarm.setType(report.getType());
-        alarm.setScanids(report.getScanId());
-        alarm.setScanid(report.getId());
-        alarm.setLastingTime(report.getLastingTime());
-        alarm.setBackLongitude(report.getBackLongitude());
-        alarm.setBackLatitude(report.getBackLatitude());
-        alarm.setTrajectory(report.getDrone());
-        alarm.setStationId(report.getStationId());
-        alarm.setDetectType(report.getDetectType());
+        Alarm alarm = AlarmConverter.fromReport(report);
         this.save(alarm);
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
         if (userId == null) {
@@ -113,12 +100,68 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req != null){
-            this.req=req; // 第一次展示，同步展示条件参数
+        if (req != null) {
+            this.req = req; // 第一次展示，同步展示条件参数
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
         return Result.success(myPage);
+    }
+
+    /**
+     * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
+     * @param userId 用户id
+     * @return 自定义分页数据
+     */
+    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
+        int page = req.getPage();
+        int size = req.getSize();
+        int sizeLimit = req.getSize_limit();
+        // 按条件查询告警 + 黑白名单类型，只显示未处置记录
+        List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
+                req.getStartTime(),
+                req.getEndTime(),
+                req.getDroneModel(),
+                req.getType(),
+                userId,
+                sizeLimit
+        );
+        if (rawList.isEmpty()) {
+            return new MyPage<RealTimeAlarmDTO>();
+        }
+        // 转换成DTO
+        List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
+            RealTimeAlarmDTO dto = new RealTimeAlarmDTO();
+            dto.setId(((Number) row.get("id")).longValue());
+            dto.setDroneModel((String) row.get("drone_model"));
+            dto.setDroneSn((String) row.get("drone_sn"));
+            String type = (String)row.get("d_type");
+            if (type==null) type="gray";
+            dto.setType(type);
+            Object intrusionTimeObj = row.get("intrusion_start_time");
+            if (intrusionTimeObj != null) {
+                dto.setIntrusionTime(intrusionTimeObj instanceof Timestamp
+                        ? (Timestamp) intrusionTimeObj
+                        : Timestamp.valueOf((LocalDateTime) intrusionTimeObj));
+            }
+            double lastLongitude = ((Number) row.get("last_longitude")).doubleValue();
+            double lastLatitude = ((Number) row.get("last_latitude")).doubleValue();
+            // 经纬度转换
+            String location = tiandituService.reverseGeocode(lastLongitude, lastLatitude);
+            dto.setLocation(location);
+            return dto;
+        }).toList();
+        // 分页
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, allDtos.size());
+        List<RealTimeAlarmDTO> pagedList = fromIndex >= allDtos.size() ? Collections.emptyList() : allDtos.subList(fromIndex, toIndex);
+        MyPage<RealTimeAlarmDTO> myPage = new MyPage<>();
+        myPage.setCurrent(page);
+        myPage.setSize(size);
+        myPage.setTotal(allDtos.size());
+        myPage.setPages((long) Math.ceil((double) allDtos.size() / size));
+        myPage.setRecords(pagedList);
+        return myPage;
     }
 
     @Override
@@ -150,7 +193,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     // JSON 字符串（可能数据库驱动没有解析）
                     trajectoryList = objectMapper.readValue(
                             (String) rawTrajectory,
-                            new TypeReference<List<Map<Object, Object>>>() {}
+                            new TypeReference<List<Map<Object, Object>>>() {
+                            }
                     );
                 } else if (rawTrajectory instanceof List) {
                     // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
@@ -160,7 +204,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     String json = objectMapper.writeValueAsString(rawTrajectory);
                     trajectoryList = objectMapper.readValue(
                             json,
-                            new TypeReference<List<Map<Object, Object>>>() {}
+                            new TypeReference<List<Map<Object, Object>>>() {
+                            }
                     );
                 }
                 mergedTrajectory.addAll(trajectoryList);
@@ -175,74 +220,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         return Result.success(dto);
     }
 
-    /**
-     * 根据 RealtimeAlarmReq + userId 获取告警信息列表并去重
-     * @param userId 用户id
-     * @return 自定义分页数据
-     */
-    private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId){
-        int page = req.getPage();
-        int size = req.getSize();
-        int sizeLimit = req.getSize_limit();
-        // 查询原始告警 + 黑白名单类型
-        List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
-                req.getStartTime(),
-                req.getEndTime(),
-                req.getDroneModel(),
-                req.getType(),
-                userId,
-                sizeLimit * 10 // 查询多一点保证去重后能满足数量
-        );
-        if (rawList.isEmpty()){
-            return new MyPage<RealTimeAlarmDTO>();
-        }
-        // 转换成DTO
-        List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
-            RealTimeAlarmDTO dto = new RealTimeAlarmDTO();
-            dto.setId(((Number) row.get("id")).longValue());
-            dto.setDroneModel((String) row.get("drone_model"));
-            dto.setDroneSn((String) row.get("drone_sn"));
-            dto.setType((String) row.get("d_type"));
-            Object intrusionTimeObj = row.get("intrusion_start_time");
-            if (intrusionTimeObj instanceof LocalDateTime) {
-                dto.setIntrusionTime(Timestamp.valueOf((LocalDateTime) intrusionTimeObj));
-            } else if (intrusionTimeObj instanceof Timestamp) {
-                dto.setIntrusionTime((Timestamp) intrusionTimeObj);
-            }
-            double lastLongitude = ((Number) row.get("last_longitude")).doubleValue();
-            double lastLatitude = ((Number) row.get("last_latitude")).doubleValue();
-            // 经纬度转换
-            String location = tiandituService.reverseGeocode(lastLongitude, lastLatitude);
-            dto.setLocation(location);
-            return dto;
-        }).toList();
-
-        // 去重（drone_sn 保留最新 intrusion_time 一条）
-        LinkedHashMap<String, RealTimeAlarmDTO> deduped = new LinkedHashMap<>();
-        allDtos.stream()
-                .sorted(Comparator.comparing(RealTimeAlarmDTO::getIntrusionTime).reversed())
-                .forEach(dto -> deduped.putIfAbsent(dto.getDroneSn(), dto));
-
-        List<RealTimeAlarmDTO> dedupedList = new ArrayList<>(deduped.values());
-
-        // 保证显示最近xxx条（由用户指定）
-        if (dedupedList.size() > sizeLimit) {
-            dedupedList = dedupedList.subList(0, sizeLimit);
-        }
-
-        // 分页
-        int fromIndex = (page - 1) * size;
-        int toIndex = Math.min(fromIndex + size, dedupedList.size());
-        List<RealTimeAlarmDTO> pagedList = fromIndex >= dedupedList.size() ? Collections.emptyList() : dedupedList.subList(fromIndex, toIndex);
-
-        MyPage<RealTimeAlarmDTO> myPage = new MyPage<>();
-        myPage.setCurrent(page);
-        myPage.setSize(size);
-        myPage.setTotal(dedupedList.size());
-        myPage.setPages((long) Math.ceil((double) dedupedList.size() / size));
-        myPage.setRecords(pagedList);
-        return myPage;
-    }
 
     @Override
     public Result<?> listAlarms(AlarmQueryReq q) {
@@ -277,21 +254,32 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
+        List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
+            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
 
+            AlarmDTO dto = new AlarmDTO();
+            dto.setId(a.getId());
+            dto.setDroneModel(a.getDroneModel());
+            dto.setIntrusionTime(a.getIntrusionStartTime());
+            dto.setLocation(location);
+            dto.setType(a.getDroneType());
+            dto.setDroneSn(a.getDroneSn());
+            return dto;
+        }).toList();
 
-        MyPage<Alarm> resultPage = new MyPage<>(
+        MyPage<AlarmDTO> resultPage = new MyPage<>(
                 alarmPage.getCurrent(),
                 alarmPage.getPages(),
                 alarmPage.getSize(),
                 alarmPage.getTotal(),
-                alarmPage.getRecords(),
+                dtoList,
                 null
         );
         return Result.success(resultPage);
     }
 
     @Override
-    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req){
+    public Result<?> updateAlarm(Long alarmId, AlarmUpdateReq req) {
         // 1. 查询原告警记录
         Alarm alarm = alarmMapper.selectById(alarmId);
         if (alarm == null) {
@@ -398,12 +386,13 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setLastingTime(r.getLastingTime());
             //TODO:反制
             dto.setDisposal(true);
-            dto.setPilotLongitude(r.getBackLongitude());
-            dto.setPilotLatitude(r.getLastLatitude());
+            dto.setPilotLongitude(r.getPilotLongitude());
+            dto.setPilotLatitude(r.getPilotLatitude());
+            //TODO:对应的起飞经纬度
+            dto.setTakeoffLongitude(1.11);
+            dto.setTakeoffLatitude(1.11);
 
-            dto.setTakeoffLongitude(r.getLastLongitude());
-            dto.setTakeoffLatitude(r.getLastLatitude());
-            dto.setLastLongitude(r.getBackLongitude());
+            dto.setLastLongitude(r.getLastLongitude());
             dto.setLastLatitude(r.getLastLatitude());
             return dto;
         }).toList();
@@ -422,9 +411,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(today.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end,userId);
+        List<HourlyDroneStaDTO> raw = alarmMapper.getHourlyDistribution(start, end, userId);
 
-        Map<Integer,Long> map = raw.stream()
+        Map<Integer, Long> map = raw.stream()
                 .collect(Collectors.toMap(
                         HourlyDroneStaDTO::getHour,
                         HourlyDroneStaDTO::getCount
@@ -434,7 +423,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         for (int i = 0; i < 24; i++) {
             stats.add(new HourlyDroneStaDTO(i, map.getOrDefault(i, 0L)));
         }
-        return Result.success( stats);
+        return Result.success(stats);
     }
 
 
@@ -448,7 +437,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date start = Date.from(monday.atStartOfDay(zone).toInstant());
         Date end = Date.from(today.plusDays(1).atStartOfDay(zone).toInstant());
 
-        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end,userId);
+        List<DateCount> raw = alarmMapper.getWeeklyCounts(start, end, userId);
 
         // 转换结果时直接使用 getter 方法
         Map<LocalDate, Long> map = raw.stream()
@@ -483,7 +472,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         MonthDroneStatsDTO::getMonth,
                         MonthDroneStatsDTO::getCount
                 ));
-        System.out.println("monthMap:"+monthMap);
+        System.out.println("monthMap:" + monthMap);
 
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -499,14 +488,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> getYearDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getYearDistribution(userId);
-        return Result.success( count);
+        return Result.success(count);
     }
 
     @Override
     public Result<?> getAllDroneDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
-        return Result.success( count);
+        return Result.success(count);
     }
 
 
