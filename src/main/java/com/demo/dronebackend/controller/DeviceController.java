@@ -85,22 +85,15 @@ public class DeviceController {
         return "Published to topic: " + topic+" : "+message;
     }
 
-    @GetMapping("/subscribe")
-    public String subscribe(@RequestParam String topic) throws Exception {
-        mqttService.subscribe(topic, (topic1, msg) -> {
-            System.out.println("111:");
-            String payload = new String(msg.getPayload());
-            System.out.println("Received from [" + topic1 + "] : " + payload);
-        });
-        return "Subscribed to topic: " + topic;
-    }
 
+
+    /**
+     * 订阅设备状态
+     */
     @PostMapping("/sub")
     @CrossOrigin
     public Map<String, Object> sub(@RequestBody StatusReport statusReport) {
-        System.out.println(statusReport);
         return deviceService.websocketDevice(statusReport);
-
     }
 
 

@@ -2,24 +2,21 @@ package com.demo.dronebackend.service;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.demo.dronebackend.mapper.AlarmMapper;
-import com.demo.dronebackend.mapper.DeviceMapper;
-import com.demo.dronebackend.mapper.DroneMapper;
-import com.demo.dronebackend.mapper.RegionMapper;
-import com.demo.dronebackend.pojo.Alarm;
-import com.demo.dronebackend.pojo.Device;
-import com.demo.dronebackend.pojo.Region;
-import com.demo.dronebackend.pojo.User;
+import com.demo.dronebackend.mapper.*;
+import com.demo.dronebackend.model.DelayTaskManager;
+import com.demo.dronebackend.pojo.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+
+import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_EVENT;
 
 @Slf4j
 @Service
@@ -30,16 +27,20 @@ public class UnattendedService {
     private final DeviceMapper deviceMapper;
     private final DroneMapper droneMapper;
     private final RegionMapper regionMapper;
-    private final IMqttClient mqttClient;
     private final AlarmMapper alarmMapper;
-
+    private final MqttService mqttService;
+    private final SystemLogMapper systemLogMapper;
+    private final DelayTaskManager delayTaskManager;
     // 记录每次启动反制的定时任务 Future，避免重复
     private final ConcurrentMap<String, ScheduledFuture<?>> timeoutTasks = new ConcurrentHashMap<>();
     private static final String TYPE_LEGAL = "legal";
-    private static final String TYPE_ILLEGAL = "illegal";
     // 设备类型常量
     private static final String DEVICE_TYPE_JAMMER = "JAMMER";
-    private static final String DEVICE_TYPE_TDOA = "tdoa";
+    // 常量定义
+    private static final String TYPE_ILLEGAL = "illegal";
+    private static final String ACTION_ON = "ON";
+    private static final String ACTION_OFF = "OFF";
+    private static final int INTERFERENCE_DURATION_SECONDS = 10;
 
     // 干扰频段常量
     private static final int BAND_1_2GHZ = 9;
@@ -49,23 +50,39 @@ public class UnattendedService {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     public void onTdoaAlarm(Alarm alarm, User u) {
-        System.out.println("接收到TDOA告警");
+
         // 1. 检查用户和无人机状态
         if (!isValidTrigger(alarm, u)) return;
-        System.out.println("开始处理TDOA告警");
+
         // 2. 区域判断
         if (!isInActionArea(alarm, u)) return;
-        System.out.println("区域判断通过");
+
         // 3. 查找最近的干扰设备
         Device device = findNearestJammer(alarm, u);
-        if (device == null) return;
-        System.out.println("找到干扰设备："+device);
+        if (device == null) {
+            logSystemEvent(
+                    u,
+                    OP_TYPE_UNATTENDED_EVENT,
+                    String.format("检测到黑飞无人机但未找到可用干扰设备 | 无人机SN:%s | 位置:%.6f,%.6f",
+                            alarm.getDroneSn(), alarm.getLastLatitude(), alarm.getLastLongitude())
+            );
+            return;
+        }
+        // 记录检测事件
+        logSystemEvent(
+                u,
+                OP_TYPE_UNATTENDED_EVENT,
+                String.format("检测到黑飞无人机 | 无人机SN:%s | 频率:%.2fMHz | 位置:%.6f,%.6f | 分配设备:%s",
+                        alarm.getDroneSn(), alarm.getFrequency(),
+                        alarm.getLastLatitude(), alarm.getLastLongitude(),
+                        device.getDeviceName())
+        );
         // 4. 确定干扰频段
         int band = determineJammerBand(alarm.getFrequency());
-        System.out.println("确定干扰频段"+ band);
+
         // 5. 发送干扰指令并管理定时任务
-        handleJammerOperation(alarm.getDroneSn(), device, band);
-        System.out.println("发送干扰指令并管理定时任务");
+        handleJammerOperation(alarm.getDroneSn(), device, band, u );
+
     }
 
     /**
@@ -93,7 +110,7 @@ public class UnattendedService {
         List<Region> regions = fetchRegions(user.getId(), Arrays.asList(1, 2));
 
         // 用户未定义任何区域时，默认全域触发
-        if (regions.isEmpty()){
+        if (regions.isEmpty()) {
             System.out.println("用户未定义任何区域，默认全域触发");
             return true;
         }
@@ -139,39 +156,58 @@ public class UnattendedService {
     /**
      * 处理干扰设备操作
      */
-    private void handleJammerOperation(String droneSn, Device device, int band) {
-        System.out.println("处理干扰设备操作");
-        System.out.println("干扰设备ID：" + device.getId());
+    private void handleJammerOperation(String droneSn, Device device, int band,User user) {
 
         // 发送开启指令
-        sendJammerCommand(device.getId(), "ON", band);
+        sendJammerCommand(device.getId(), ACTION_ON, band,user);
+        // 记录干扰开始事件
+        logSystemEvent(
+                user,
+                OP_TYPE_UNATTENDED_EVENT,
+                String.format("启动干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
+                        device.getId(), band, droneSn)
+        );
+
 
         // 管理定时任务
-        manageTimeoutTask(droneSn, device, band);
+        manageTimeoutTask(droneSn, device, band,user);
     }
 
     /**
      * 管理超时任务
      */
-    private void manageTimeoutTask(String droneSn, Device device, int band) {
-        // 取消现有任务
-        ScheduledFuture<?> existingTask = timeoutTasks.remove(droneSn);
-        if (existingTask != null) {
-            existingTask.cancel(false);
-        }
+    private void manageTimeoutTask(String droneSn, Device device, int band,User user) {
+        // 创建关闭任务
+        Runnable closeTask = () -> {
+            log.info("检查干扰状态 | 设备ID:{} | 无人机SN:{}", device.getId(), droneSn);
 
-        // 记录任务启动时间
-        final Instant taskStartTime = Instant.now();
-
-        // 创建新任务
-        ScheduledFuture<?> newTask = scheduler.schedule(() -> {
-            if (!hasRecentAlarms(droneSn, taskStartTime)) {
-                sendJammerCommand(device.getId(), "OFF", band);
+            // 检查过去10秒内是否有告警
+            Instant checkStartTime = Instant.now().minusSeconds(INTERFERENCE_DURATION_SECONDS);
+            if (!hasRecentAlarms(droneSn, checkStartTime)) {
+                log.info("关闭干扰设备 | 设备ID:{} | 频段:{} | 无人机SN:{}",
+                        device.getId(), band, droneSn);
+                sendJammerCommand(device.getId(), ACTION_OFF, band,user);
+                // 记录干扰结束事件
+                logSystemEvent(
+                        user,
+                        OP_TYPE_UNATTENDED_EVENT,
+                        String.format("关闭干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
+                                device.getId(), band, droneSn)
+                );
+            } else {
+                // 无人机仍在活动，重新调度检查
+                manageTimeoutTask(droneSn, device, band, user);
+                logSystemEvent(
+                        user,
+                        OP_TYPE_UNATTENDED_EVENT,
+                        String.format("无人机仍在活动，保持干扰 | 设备ID:%s | 无人机SN:%s",
+                                device.getId(), droneSn)
+                );
             }
-            timeoutTasks.remove(droneSn);
-        }, 10, TimeUnit.SECONDS);
+        };
 
-        timeoutTasks.put(droneSn, newTask);
+        // 使用DelayTaskManager调度任务
+        delayTaskManager.scheduleDelayTask(droneSn, closeTask, INTERFERENCE_DURATION_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
@@ -187,22 +223,34 @@ public class UnattendedService {
     /**
      * 发送干扰指令
      */
-    private void sendJammerCommand(String deviceId, String action, int band) {
+    private void sendJammerCommand(String deviceId, String action, int band, User user) {
         try {
-            Map<String, Object> payload = Map.of(
+            Map<String, Object> payloadMap = Map.of(
                     "action", action,
                     "band", band,
                     "timestamp", System.currentTimeMillis()
             );
 
-            MqttMessage message = new MqttMessage(new ObjectMapper().writeValueAsBytes(payload));
-            // 确保至少送达一次
-            message.setQos(1);
+            String topic = "device/command/startJam";
+            String message = new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .writeValueAsString(payloadMap);
 
-            mqttClient.publish("device/" + deviceId + "/control", message);
+            mqttService.publish(topic, message);
+
+            log.info("MQTT指令已发送 | 主题:{} | 动作:{} | 频段:{}", topic, action, band);
         } catch (Exception e) {
-            log.error("MQTT指令发送失败 | 设备:{} | 动作:{} | 频段:{}",
-                    deviceId, action, band, e);
+            String errorMsg = String.format("MQTT指令发送失败 | 设备:%s | 动作:%s | 频段:%d | 错误:%s",
+                    deviceId, action, band, e.getMessage());
+
+            log.error(errorMsg, e);
+
+            // 记录错误事件
+            logSystemEvent(
+                    user,
+                    OP_TYPE_UNATTENDED_EVENT,
+                    errorMsg
+            );
         }
     }
 
@@ -220,6 +268,7 @@ public class UnattendedService {
             return BAND_5_8GHZ;  // 5.8GHz
         }
     }
+
     private double distance(double lat1, double lon1, double lat2, double lon2) {
         // 地球半径（米）
         final double R = 6_371_000;
@@ -237,5 +286,17 @@ public class UnattendedService {
 
         // 返回距离（米）
         return R * c;
+    }
+
+
+    private void logSystemEvent(User user, String operationType, String description) {
+        SystemLog systemLog = new SystemLog();
+        systemLog.setUserId(user.getId());
+        systemLog.setUsername(user.getName());
+        systemLog.setOperationType(operationType);
+        systemLog.setDescription(description);
+        systemLog.setCreatedTime(new Date());
+
+        systemLogMapper.insert(systemLog);
     }
 }
