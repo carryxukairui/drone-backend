@@ -140,7 +140,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (r == 0) {
             throw new BusinessException("未删除任何记录，请检查 ID 是否正确");
         }
-        return Result.success(null);
+        return Result.success("批量删除成功");
     }
 
     @Override
@@ -222,7 +222,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return Result.success(null);
+        return Result.success("更新成功");
     }
 
     @Override
