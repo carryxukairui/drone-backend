@@ -25,6 +25,7 @@ import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
+import com.demo.dronebackend.util.AlarmConverter;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,21 +38,11 @@ import org.springframework.util.StringUtils;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-<<<<<<<<< Temporary merge branch 1
 import java.time.*;
-import java.util.*;
-import java.time.format.DateTimeFormatter;
-=========
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
->>>>>>>>> Temporary merge branch 2
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
 
 /**

@@ -196,23 +196,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             return Result.error("设备不存在");
         }
 
-        device.setPower(paramSettings.getPower());
-        deviceMapper.updateById(device);
-
-        DisposalRecord dr = disposalRecordMapper.selectOne(
-                new LambdaQueryWrapper<DisposalRecord>()
-                        .eq(DisposalRecord::getDeviceId, deviceId)
-        );
-        if (dr == null) {
-            dr = new DisposalRecord();
-            dr.setDeviceId(deviceId);
-        }
+        DisposalRecord dr = new DisposalRecord();
+        dr.setDeviceId(deviceId);
         dr.setG09Onoff(paramSettings.getG09OnOff());
         dr.setG16Onoff(paramSettings.getG16OnOff());
         dr.setG24Onoff(paramSettings.getG24OnOff());
         dr.setG58Onoff(paramSettings.getG58OnOff());
         dr.setDuration(paramSettings.getDuration());
-        disposalRecordMapper.updateById(dr);
+        disposalRecordMapper.insert(dr);
 
 
         Map<String, Object> payloadMap = new LinkedHashMap<>();
