@@ -73,7 +73,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
         if (userId == null) {
             log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getId());
-            return Result.success("无可推送用户", null);
+            return Result.success("无可推送用户");
         }
         // 根据用户id获取最新告警集合
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
@@ -86,7 +86,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (user != null) {
             unattendedService.onTdoaAlarm(alarm, user);
         }
-        return Result.success("推送成功", null);
+        return Result.success("推送成功");
     }
 
     @Override

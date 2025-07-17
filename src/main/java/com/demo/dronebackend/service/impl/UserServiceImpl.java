@@ -49,7 +49,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result loginByPassword(LoginByPswReq req) throws BusinessException {
-
         User user = this.query().eq("phone", req.getPhone()).one();
         if (user == null) {
             throw new BusinessException("用户不存在");
@@ -61,8 +60,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 登录
         StpUtil.login(user.getId());
-        // 返回token和permission
-        return Result.success(new LoginDTO(StpUtil.getTokenValue(),user.getPermission()));
+        // 返回token，permission以及无人值守状态
+        LoginDTO loginDTO = new LoginDTO(StpUtil.getTokenValue(), user.getPermission(), user.getUnattended());
+        return Result.success(loginDTO);
     }
 
     @Override
@@ -82,7 +82,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         StpUtil.login(user.getId());
         smsService.deleteCode(phone);
-        return Result.success(new LoginDTO(StpUtil.getTokenValue(), user.getPermission()));
+        // 返回token，permission以及无人值守状态
+        LoginDTO loginDTO = new LoginDTO(StpUtil.getTokenValue(), user.getPermission(), user.getUnattended());
+        return Result.success(loginDTO);
     }
 
     @Override

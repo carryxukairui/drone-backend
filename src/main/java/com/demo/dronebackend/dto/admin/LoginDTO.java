@@ -8,4 +8,5 @@ import lombok.Data;
 public class LoginDTO {
     private String token;
     private String permission;
+    private Integer unattended;
 }
