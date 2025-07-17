@@ -47,17 +47,21 @@ public class UnattendedService {
     private static final int BAND_1_9GHZ = 16;
     private static final int BAND_2_7GHZ = 24;
     private static final int BAND_5_8GHZ = 58;
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
-    public void onTdoaAlarm(Alarm alarm, User u) {
+    public void onTdoaAlarm(Alarm alarm, User u, boolean isManualTrigger) {
 
-        // 1. 检查用户和无人机状态
+        // 先判断是否是手动处置，手动则跳过，非手动才会去判断是否是无人值守
+        if (!isManualTrigger && u.getUnattended() != 1) {
+            // 非手动且有人值守，返回
+            return;
+        }
+        // 检查用户和无人机状态
         if (!isValidTrigger(alarm, u)) return;
 
-        // 2. 区域判断
+        // 区域判断
         if (!isInActionArea(alarm, u)) return;
 
-        // 3. 查找最近的干扰设备
+        // 查找最近的干扰设备
         Device device = findNearestJammer(alarm, u);
         if (device == null) {
             logSystemEvent(
@@ -89,9 +93,6 @@ public class UnattendedService {
      * 验证触发条件
      */
     private boolean isValidTrigger(Alarm alarm, User user) {
-        // 用户非无人值守模式
-        if (user.getUnattended() != 1) return false;
-
         // 非黑名单无人机
         if (!TYPE_ILLEGAL.equals(droneMapper.findTypeBySn(alarm.getDroneSn()))) {
             return false;
