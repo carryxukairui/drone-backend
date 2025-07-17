@@ -2,6 +2,7 @@ package com.demo.dronebackend.config;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.demo.dronebackend.constant.SystemConstants;
+import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.ws.AlarmWebSocketHandler;
 import com.demo.dronebackend.ws.MyWebSocketHandler;
 import com.demo.dronebackend.ws.WebSocketService;
@@ -47,6 +48,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
                         if (query != null && query.startsWith(SA_TOKEN)) {
                             String token = query.substring(SA_TOKEN.length());
                             // 登录校验
+//                            try {
+//                                StpUtil.checkLogin();
+//                            } catch (Exception e) {
+//                                throw new BusinessException(e.getMessage());
+//                            }
                             StpUtil.checkLogin();
                             String userId = StpUtil.getLoginIdByToken(token).toString();
                             if (userId != null) {

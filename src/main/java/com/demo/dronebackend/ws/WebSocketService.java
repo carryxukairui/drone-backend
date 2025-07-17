@@ -1,8 +1,5 @@
 package com.demo.dronebackend.ws;
 
-import com.demo.dronebackend.constant.DeviceType;
-import com.demo.dronebackend.constant.SystemConstants;
-import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceDTO;
 import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
 import com.demo.dronebackend.model.MyPage;
@@ -16,12 +13,10 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Stream;
 
 @Service
 public class WebSocketService {

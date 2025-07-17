@@ -25,7 +25,7 @@ public class FlightHistoryQuery {
     /** 无人机型号 */
     private String model;
     /** 国标/自定义类型 */
-    private Integer droneType;
+    private String droneType;
     /** 是否已反制 */
     private Boolean disposalFlag;
 

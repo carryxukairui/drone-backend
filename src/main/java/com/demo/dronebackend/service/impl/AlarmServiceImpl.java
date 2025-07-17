@@ -4,10 +4,10 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.constant.SystemConstants;
+import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
 import com.demo.dronebackend.dto.hardware.DroneReport;
@@ -39,8 +39,8 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.*;
-import java.util.*;
 import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
@@ -91,8 +91,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req != null) {
-            this.req = req; // 第一次展示，同步展示条件参数
+        if (req != null){
+            this.req=req; // 第一次展示，同步展示条件参数
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
@@ -108,7 +108,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
-        // 按条件查询告警 + 去重，只显示最新的未处置记录
+        // 按条件查询告警 + 黑白名单类型，只显示未处置记录
         List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
                 req.getStartTime(),
                 req.getEndTime(),
@@ -256,7 +256,18 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
+        List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
+            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
 
+            AlarmDTO dto = new AlarmDTO();
+            dto.setId(a.getId());
+            dto.setDroneModel(a.getDroneModel());
+            dto.setIntrusionTime(a.getIntrusionStartTime());
+            dto.setLocation(location);
+            dto.setType(a.getDroneType());
+            dto.setDroneSn(a.getDroneSn());
+            return dto;
+        }).toList();
 
         MyPage<Alarm> resultPage = new MyPage<>(
                 alarmPage.getCurrent(),
@@ -346,7 +357,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (StringUtils.hasText(q.getModel())) {
             qw.eq(Alarm::getDroneModel, q.getModel());
         }
-        if (q.getDroneType() != null) {
+        if (StringUtils.hasText(q.getDroneType())) {
             qw.eq(Alarm::getDroneType, q.getDroneType());
         }
 
@@ -413,7 +424,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         for (int i = 0; i < 24; i++) {
             stats.add(new HourlyDroneStaDTO(i, map.getOrDefault(i, 0L)));
         }
-        return Result.success(stats);
+        return Result.success( stats);
     }
 
 
@@ -462,7 +473,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         MonthDroneStatsDTO::getMonth,
                         MonthDroneStatsDTO::getCount
                 ));
-        System.out.println("monthMap:" + monthMap);
+        System.out.println("monthMap:"+monthMap);
 
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -478,14 +489,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public Result<?> getYearDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getYearDistribution(userId);
-        return Result.success(count);
+        return Result.success( count);
     }
 
     @Override
     public Result<?> getAllDroneDistribution() {
         long userId = StpUtil.getLoginIdAsLong();
         long count = alarmMapper.getAllDroneDistribution(userId);
-        return Result.success(count);
+        return Result.success( count);
     }
 
 
@@ -506,11 +517,18 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date lastYearEnd = toDate(lastYearToday.atTime(LocalTime.MAX));
 
         // 查询各时间段数据量
-        Long userId = StpUtil.getLoginIdAsLong();
-        long todayCount = alarmMapper.countAlarmsByTime(userId, todayStart, todayEnd);
-        long yesterdayCount = alarmMapper.countAlarmsByTime(userId, yesterdayStart, yesterdayEnd);
-        long lastYearCount = alarmMapper.countAlarmsByTime(userId, lastYearStart, lastYearEnd);
-
+        long todayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, todayStart, todayEnd)
+        );
+        long yesterdayCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, yesterdayStart, yesterdayEnd)
+        );
+        long lastYearCount = alarmMapper.selectCount(
+                new LambdaQueryWrapper<Alarm>()
+                        .between(Alarm::getIntrusionStartTime, lastYearStart, lastYearEnd)
+        );
         // 构造返回值
         return Result.success(new MonitorCountDTO(todayCount,calcRate(todayCount, lastYearCount),calcRate(todayCount, yesterdayCount)));
     }
@@ -538,15 +556,13 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> getBrandCount() {
-        Long userId = StpUtil.getLoginIdAsLong();
-        List<Map<String, Object>> brandCount = alarmMapper.countFlightByBrand(userId);
+        List<Map<String, Object>> brandCount = alarmMapper.countFlightByBrand(StpUtil.getLoginIdAsLong());
         return Result.success(brandCount);
     }
 
     @Override
     public Result<?> getSortiesByHour() {
-        Long userId = StpUtil.getLoginIdAsLong();
-        List<Map<String, Object>> raw = alarmMapper.countSortieByHour(userId);
+        List<Map<String, Object>> raw = alarmMapper.countSortieByHour(StpUtil.getLoginIdAsLong());
         // 转换成 Map<String, Integer>，方便补全
         Map<String, Integer> countMap = new HashMap<>();
         for (Map<String, Object> row : raw) {
