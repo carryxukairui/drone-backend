@@ -3,16 +3,20 @@ package com.demo.dronebackend.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.dto.screen.AlertRegionDTO;
 import com.demo.dronebackend.dto.screen.RegionReq;
 import com.demo.dronebackend.mapper.RegionMapper;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Region;
 import com.demo.dronebackend.service.RegionService;
+import com.demo.dronebackend.service.TiandituService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
 * @author 28611
@@ -25,6 +29,7 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region>
     implements RegionService{
 
     private final RegionMapper regionMapper;
+    private final TiandituService tiandituService;
     @Override
     public Result<?> createAlertRegion( RegionReq req) {
         long userId = StpUtil.getLoginIdAsLong();
@@ -48,7 +53,19 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region>
 
         List<Region> regions = regionMapper.selectList(new LambdaQueryWrapper<Region>()
                 .eq(Region::getUserId, userId));
-        return Result.success(regions);
+
+        List<AlertRegionDTO> dtoList = regions.stream()
+                .map(region -> {
+                    AlertRegionDTO dto = new AlertRegionDTO();
+                    BeanUtils.copyProperties(region, dto);
+                    String location = tiandituService
+                            .reverseGeocode(region.getCenterLon(), region.getCenterLat());
+                    dto.setLocation(location);
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        return Result.success(dtoList);
     }
 
     @Override

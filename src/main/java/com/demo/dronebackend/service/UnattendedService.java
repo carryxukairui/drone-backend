@@ -2,6 +2,7 @@ package com.demo.dronebackend.service;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.mapper.*;
 import com.demo.dronebackend.model.DelayTaskManager;
 import com.demo.dronebackend.pojo.*;
@@ -223,17 +224,41 @@ public class UnattendedService {
      * 发送干扰指令
      */
     private void sendJammerCommand(String deviceId, String action, int band, User user) {
+        int onoff09 = 2;
+        int onoff16 = 2;
+        int onoff24 = 2;
+        int onoff58 = 2;
+
+        // 再对目标频段做开/关设置
+        int mode;
+        if ("ON".equalsIgnoreCase(action)) {
+            mode = 1;
+        } else if ("OFF".equalsIgnoreCase(action)) {
+            mode = 0;
+        } else {
+            mode = 2;
+        }
+
+        switch (band) {
+            case 9    -> onoff09 = mode;
+            case 16   -> onoff16 = mode;
+            case 24   -> onoff24 = mode;
+            case 58   -> onoff58 = mode;
+            default   -> {
+                // 非法频段，可以记录日志或抛异常
+                log.warn("未知频段 {}，保持所有频段原状态", band);
+            }
+        }
+        DeviceCommand command = new DeviceCommand(deviceId, onoff09, onoff16, onoff24, onoff58);
         try {
-            Map<String, Object> payloadMap = Map.of(
-                    "action", action,
-                    "band", band,
-                    "timestamp", System.currentTimeMillis()
-            );
+            String payload = new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .writeValueAsString(command);
 
             String topic = "device/command/startJam";
             String message = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                    .writeValueAsString(payloadMap);
+                    .writeValueAsString(payload);
 
             mqttService.publish(topic, message);
 

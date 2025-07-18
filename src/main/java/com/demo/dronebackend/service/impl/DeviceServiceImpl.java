@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.hardware.Scanner;
@@ -206,18 +207,18 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         disposalRecordMapper.insert(dr);
 
 
-        Map<String, Object> payloadMap = new LinkedHashMap<>();
-        payloadMap.put("deviceID", deviceId);
-        payloadMap.put("g09_onoff", dr.getG09Onoff());
-        payloadMap.put("g16_onoff", dr.getG16Onoff());
-        payloadMap.put("g24_onoff", dr.getG24Onoff());
-        payloadMap.put("g58_onoff", dr.getG58Onoff());
-        payloadMap.put("duration", dr.getDuration());
+        DeviceCommand command = new DeviceCommand(deviceId,
+                paramSettings.getG09OnOff(),
+                paramSettings.getG16OnOff(),
+                paramSettings.getG24OnOff(),
+                paramSettings.getG58OnOff());
+
         //TODO: 将设备修改信息通过MQTT发送给硬件
         try {
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                    .writeValueAsString(payloadMap);
+                    .writeValueAsString(command);
+            System.out.println("MQTT指令已发送 | 命令:  |"+ payload);
             mqttService.publish(topic, payload);
         } catch (IOException e) {
             e.printStackTrace();
