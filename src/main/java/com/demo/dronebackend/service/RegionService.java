@@ -15,4 +15,7 @@ public interface RegionService extends IService<Region> {
     Result<?> createAlertRegion(RegionReq req);
 
 
+    Result<?> getAlertRegion();
+
+    Result<?> deleteAlertRegion(String id);
 }

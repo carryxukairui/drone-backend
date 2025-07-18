@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.screen.RegionReq;
 import com.demo.dronebackend.mapper.RegionMapper;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 /**
 * @author 28611
@@ -38,6 +40,28 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region>
         region.setType( req.getAlertType());
         regionMapper.insert(region);
         return Result.success("创建成功");
+    }
+
+    @Override
+    public Result<?> getAlertRegion() {
+        long userId = StpUtil.getLoginIdAsLong();
+
+        List<Region> regions = regionMapper.selectList(new LambdaQueryWrapper<Region>()
+                .eq(Region::getUserId, userId));
+        return Result.success(regions);
+    }
+
+    @Override
+    public Result<?> deleteAlertRegion(String id) {
+        long userId = StpUtil.getLoginIdAsLong();
+        int delete = regionMapper.delete(new LambdaQueryWrapper<Region>()
+                .eq(Region::getUserId, userId)
+                .eq(Region::getId, id));
+        if (delete > 0) {
+            return Result.success("删除成功");
+        }
+        return Result.error("删除失败");
+
     }
 
 

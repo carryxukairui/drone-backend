@@ -31,8 +31,6 @@ public class UnattendedService {
     private final MqttService mqttService;
     private final SystemLogMapper systemLogMapper;
     private final DelayTaskManager delayTaskManager;
-    // 记录每次启动反制的定时任务 Future，避免重复
-    private final ConcurrentMap<String, ScheduledFuture<?>> timeoutTasks = new ConcurrentHashMap<>();
     private static final String TYPE_LEGAL = "legal";
     // 设备类型常量
     private static final String DEVICE_TYPE_JAMMER = "JAMMER";

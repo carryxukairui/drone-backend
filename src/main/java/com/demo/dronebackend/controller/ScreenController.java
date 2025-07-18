@@ -72,7 +72,7 @@ public class ScreenController {
      * @return
      */
     @PostMapping("/flight/history")
-    public Result<?> historyList( @RequestBody FlightHistoryQuery query) {
+    public Result<?> historyList(@RequestBody FlightHistoryQuery query) {
         return alarmService.historyList(query);
     }
 
@@ -98,7 +98,6 @@ public class ScreenController {
     public Result<?> getDeviceList() {
         return deviceService.getDeviceList();
     }
-
 
 
     /**
@@ -185,30 +184,30 @@ public class ScreenController {
      * 今日动态
      */
     @GetMapping("dynamics/monitor-count")
-    public Result<?> getMonitorCount(){
+    public Result<?> getMonitorCount() {
         return alarmService.getMonitorCount();
     }
 
     @GetMapping("dynamics/disposal-count")
-    public Result<?> getDisposalCount(){
+    public Result<?> getDisposalCount() {
         return disposalRecordService.getDisposalCount();
     }
 
     @GetMapping("dynamics/brand-count")
-    public Result<?> getBrandCount(){
+    public Result<?> getBrandCount() {
         return alarmService.getBrandCount();
     }
 
 
     @GetMapping("dynamics/sorties-by-hour")
-    public Result<?> getSortiesByHour(){
+    public Result<?> getSortiesByHour() {
         return alarmService.getSortiesByHour();
     }
 
     /**
      * 创建预警区、核心区、反制区
      */
-    @PostMapping("/alert")
+    @PostMapping("/alert/create")
     public Result<?> createAlertRegion(@RequestBody @Valid RegionReq req) {
         return regionService.createAlertRegion(req);
     }
@@ -217,8 +216,25 @@ public class ScreenController {
      * 无人值守
      */
     @PostMapping("/{flag}/unattended")
-    public Result<?> setUnattended(@PathVariable("flag") Boolean flag){
+    public Result<?> setUnattended(@PathVariable("flag") Boolean flag) {
         return userService.setUnattended(flag);
     }
 
+
+    /**
+     * 获取防空区信息
+     */
+    @GetMapping("/alert")
+    public Result<?> getAlertRegion() {
+        return regionService.getAlertRegion();
+    }
+
+    /**
+     * 删除防空区信息
+     */
+    @DeleteMapping("/alert/{id}")
+    public Result<?> deleteAlertRegion(@PathVariable String id) {
+        return regionService.deleteAlertRegion(id);
+    }
 }
+
