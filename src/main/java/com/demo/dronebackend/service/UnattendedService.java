@@ -12,12 +12,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_EVENT;
+import static com.demo.dronebackend.constant.SystemLogConstants.*;
 
 @Slf4j
 @Service
@@ -32,6 +34,7 @@ public class UnattendedService {
     private final MqttService mqttService;
     private final SystemLogMapper systemLogMapper;
     private final DelayTaskManager delayTaskManager;
+    private final TiandituService tiandituService;
     private static final String TYPE_LEGAL = "legal";
     // 设备类型常量
     private static final String DEVICE_TYPE_JAMMER = "JAMMER";
@@ -94,6 +97,13 @@ public class UnattendedService {
     private boolean isValidTrigger(Alarm alarm, User user) {
         // 非黑名单无人机
         if (!TYPE_ILLEGAL.equals(droneMapper.findTypeBySn(alarm.getDroneSn()))) {
+            logSystemEvent(
+                    user,
+                    OP_TYPE_UNATTENDED_NO_DRONE,
+                    String.format("检测到非黑飞无人机 | 无人机SN:%s | 频率:%.2fMHz | 位置:%.6f,%.6f",
+                            alarm.getDroneSn(), alarm.getFrequency(),
+                            alarm.getLastLatitude(), alarm.getLastLongitude())
+            );
             return false;
         }
 
@@ -103,7 +113,7 @@ public class UnattendedService {
 
 
     /**
-     * 区域判断逻辑优化
+     * 区域判断逻辑
      */
     private boolean isInActionArea(Alarm alarm, User user) {
         // 1=核心区, 2=反制区
@@ -116,14 +126,46 @@ public class UnattendedService {
         }
 
         // 检查是否在任一有效区域内
-        return regions.stream().anyMatch(region ->
+        boolean inArea = regions.stream().anyMatch(region ->
                 region.getCenterLat() != null &&
                         region.getCenterLon() != null &&
                         region.getRadius() != null &&
-                        distance(region.getCenterLat(), region.getCenterLon(),
-                                alarm.getLastLatitude(), alarm.getLastLongitude())
-                                <= region.getRadius() * 1000.0
+                        distance(
+                                region.getCenterLat(), region.getCenterLon(),
+                                alarm.getLastLatitude(), alarm.getLastLongitude()
+                        ) <= region.getRadius() * 1000.0
         );
+
+        if (inArea) {
+            // 在核心区/反制区内，写“击中”日志
+            logSystemEvent(
+                    user,
+                    OP_TYPE_UNATTENDED_IN_AREA,
+                    String.format(
+                            "检测到黑飞无人机 | 无人机SN:%s | 频率:%.2fMHz | 位置:%.6f,%.6f | 落入%s",
+                            alarm.getDroneSn(),
+                            alarm.getFrequency(),
+                            alarm.getLastLatitude(),
+                            alarm.getLastLongitude(),
+                            tiandituService.reverseGeocode(alarm.getLastLongitude(), alarm.getLastLatitude())
+                    )
+            );
+            return true;
+        } else {
+            // 不在任何定义的区域，写“未命中”日志
+            logSystemEvent(
+                    user,
+                    OP_TYPE_UNATTENDED_OUT_AREA,
+                    String.format(
+                            "检测到黑飞无人机 | 无人机SN:%s | 频率:%.2fMHz | 位置:%.6f,%.6f | 区域外",
+                            alarm.getDroneSn(),
+                            alarm.getFrequency(),
+                            alarm.getLastLatitude(),
+                            alarm.getLastLongitude()
+                    )
+            );
+            return false;
+        }
     }
 
 
@@ -168,7 +210,6 @@ public class UnattendedService {
                         device.getId(), band, droneSn)
         );
 
-
         // 管理定时任务
         manageTimeoutTask(droneSn, device, band,user);
     }
@@ -207,7 +248,10 @@ public class UnattendedService {
         };
 
         // 使用DelayTaskManager调度任务
-        delayTaskManager.scheduleDelayTask(droneSn, closeTask, INTERFERENCE_DURATION_SECONDS, TimeUnit.SECONDS);
+        // 任务标识: 设备ID:无人机SN
+        String key = device.getId() + ":" + droneSn;
+
+        delayTaskManager.scheduleDelayTask(key, closeTask, INTERFERENCE_DURATION_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
@@ -263,18 +307,18 @@ public class UnattendedService {
             mqttService.publish(topic, message);
 
             log.info("MQTT指令已发送 | 主题:{} | 动作:{} | 频段:{}", topic, action, band);
+            // 成功也写入日志，方便审计每次下发内容
+            logSystemEvent(
+                    user,
+                    OP_TYPE_UNATTENDED_MQTT_SUCCESS,
+                    String.format("MQTT指令已发送 | 设备:%s | 动作:%s | 频段:%d | payload:%s",
+                            deviceId, action, band, payload)
+            );
         } catch (Exception e) {
             String errorMsg = String.format("MQTT指令发送失败 | 设备:%s | 动作:%s | 频段:%d | 错误:%s",
                     deviceId, action, band, e.getMessage());
-
             log.error(errorMsg, e);
-
-            // 记录错误事件
-            logSystemEvent(
-                    user,
-                    OP_TYPE_UNATTENDED_EVENT,
-                    errorMsg
-            );
+            logSystemEvent(user, OP_TYPE_UNATTENDED_MQTT_FAIL, errorMsg);
         }
     }
 
