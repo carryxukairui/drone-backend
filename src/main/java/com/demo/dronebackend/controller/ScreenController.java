@@ -66,6 +66,14 @@ public class ScreenController {
     }
 
     /**
+     * 驾驶舱-告警/处置统计
+     */
+    @GetMapping("/alarms/statistics")
+    public Result<?> getAlarmStatistics() {
+        return alarmService.getAlarmStatistics();
+    }
+
+    /**
      * 获取飞行历史
      *
      * @param query 查询参数
@@ -236,5 +244,6 @@ public class ScreenController {
     public Result<?> deleteAlertRegion(@PathVariable String id) {
         return regionService.deleteAlertRegion(id);
     }
+
 }
 

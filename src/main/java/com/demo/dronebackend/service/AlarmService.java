@@ -32,6 +32,11 @@ public interface AlarmService extends IService<Alarm> {
     Result<?> disposeDrone(String id);
 
 
+    /**
+     * 驾驶舱-告警/处置统计
+     */
+    Result<?> getAlarmStatistics();
+
 
     /**
      * 系统管理-感知记录管理

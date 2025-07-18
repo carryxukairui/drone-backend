@@ -224,6 +224,30 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     }
 
     @Override
+    public Result<?> getAlarmStatistics() {
+        long userId = StpUtil.getLoginIdAsLong();
+        LocalDate today = LocalDate.now();
+        Date todayStart = toDate(today.atStartOfDay());
+        Date todayEnd = toDate(today.atTime(LocalTime.MAX));
+        // 今日告警总数
+        long todayAlarmCount = alarmMapper.countAlarmsByTime(userId, todayStart, todayEnd);
+        // 告警总数
+        long totalAlarmCount = alarmMapper.countAlarmsByTime(userId,null,null);
+        // 今日处置总数
+        long todayDisposalCount = alarmMapper.countDisposedAlarms(userId, todayStart, todayEnd);
+        // 处置总数
+        long totalDisposalCount = alarmMapper.countDisposedAlarms(userId, null, null);
+        // 构造DTO
+        AlarmStatisticsDTO dto = new AlarmStatisticsDTO (
+                todayAlarmCount,
+                totalAlarmCount,
+                todayDisposalCount,
+                totalDisposalCount
+        );
+        return Result.success(dto);
+    }
+
+    @Override
     public Result<?> listAlarms(AlarmQueryReq q) {
         Page<Alarm> page = new Page<>(q.getPage(), q.getSize());
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -478,10 +502,14 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
             String monthStr = String.format("%02d", m);
-            long count = monthMap.getOrDefault(monthStr, 0L);
+            long count;
+            if (m<10){
+                count = monthMap.getOrDefault(String.valueOf(m), 0L);
+            }else {
+                count = monthMap.getOrDefault(monthStr, 0L);
+            }
             stats.add(new MonthDroneStatsDTO(monthStr, count));
         }
-
         return Result.success(stats);
     }
 
@@ -517,18 +545,10 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         Date lastYearEnd = toDate(lastYearToday.atTime(LocalTime.MAX));
 
         // 查询各时间段数据量
-        long todayCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, todayStart, todayEnd)
-        );
-        long yesterdayCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, yesterdayStart, yesterdayEnd)
-        );
-        long lastYearCount = alarmMapper.selectCount(
-                new LambdaQueryWrapper<Alarm>()
-                        .between(Alarm::getIntrusionStartTime, lastYearStart, lastYearEnd)
-        );
+        Long userId = StpUtil.getLoginIdAsLong();
+        long todayCount = alarmMapper.countAlarmsByTime(userId, todayStart, todayEnd);
+        long yesterdayCount = alarmMapper.countAlarmsByTime(userId, yesterdayStart, yesterdayEnd);
+        long lastYearCount = alarmMapper.countAlarmsByTime(userId, lastYearStart, lastYearEnd);
         // 构造返回值
         return Result.success(new MonitorCountDTO(todayCount,calcRate(todayCount, lastYearCount),calcRate(todayCount, yesterdayCount)));
     }

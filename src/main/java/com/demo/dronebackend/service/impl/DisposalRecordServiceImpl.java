@@ -21,6 +21,9 @@ import com.demo.dronebackend.util.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,11 +90,19 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
 
     @Override
     public Result<?> getDisposalCount() {
-        QueryWrapper<Alarm> wrapper = new QueryWrapper<>();
-        wrapper.eq("is_disposed", 1);
-        Long disposedCnt = alarmMapper.selectCount(wrapper);
         Long userId = StpUtil.getLoginIdAsLong();
+        // 今日处置总数
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = todayStart.plusDays(1);
+        Long disposedCnt = alarmMapper.countDisposedAlarms(
+                userId,
+                Timestamp.valueOf(todayStart),
+                Timestamp.valueOf(todayEnd)
+        );
+
+        // 今日未处置总数
         Long unDisposedCnt = alarmMapper.countUndisposedAlarms(userId);
+
         Map<String, Long> disposalCount = new LinkedHashMap<>();
         disposalCount.put("disposed_count",disposedCnt);
         disposalCount.put("undisposed_count",unDisposedCnt);

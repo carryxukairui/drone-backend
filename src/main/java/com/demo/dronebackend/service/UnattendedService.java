@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service;
 
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.mapper.*;
@@ -87,7 +88,7 @@ public class UnattendedService {
         int band = determineJammerBand(alarm.getFrequency());
 
         // 5. 发送干扰指令并管理定时任务
-        handleJammerOperation(alarm.getDroneSn(), device, band, u );
+        handleJammerOperation(alarm, device, band, u );
 
     }
 
@@ -198,7 +199,7 @@ public class UnattendedService {
     /**
      * 处理干扰设备操作
      */
-    private void handleJammerOperation(String droneSn, Device device, int band,User user) {
+    private void handleJammerOperation(Alarm alarm, Device device, int band,User user) {
 
         // 发送开启指令
         sendJammerCommand(device.getId(), ACTION_ON, band,user);
@@ -207,24 +208,25 @@ public class UnattendedService {
                 user,
                 OP_TYPE_UNATTENDED_EVENT,
                 String.format("启动干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
-                        device.getId(), band, droneSn)
+                        device.getId(), band, alarm.getDroneSn())
         );
 
         // 管理定时任务
-        manageTimeoutTask(droneSn, device, band,user);
+        manageTimeoutTask(alarm, device, band,user);
     }
 
     /**
      * 管理超时任务
      */
-    private void manageTimeoutTask(String droneSn, Device device, int band,User user) {
+    private void manageTimeoutTask(Alarm alarm, Device device, int band,User user) {
+        String droneSn = alarm.getDroneSn();
         // 创建关闭任务
         Runnable closeTask = () -> {
             log.info("检查干扰状态 | 设备ID:{} | 无人机SN:{}", device.getId(), droneSn);
 
-            // 检查过去10秒内是否有告警
+            // 检查过去10秒内是否有同一无人机的告警
             Instant checkStartTime = Instant.now().minusSeconds(INTERFERENCE_DURATION_SECONDS);
-            if (!hasRecentAlarms(droneSn, checkStartTime)) {
+            if (!hasRecentAlarms(droneSn, checkStartTime,alarm.getIntrusionStartTime())) {
                 log.info("关闭干扰设备 | 设备ID:{} | 频段:{} | 无人机SN:{}",
                         device.getId(), band, droneSn);
                 sendJammerCommand(device.getId(), ACTION_OFF, band,user);
@@ -237,7 +239,7 @@ public class UnattendedService {
                 );
             } else {
                 // 无人机仍在活动，重新调度检查
-                manageTimeoutTask(droneSn, device, band, user);
+                manageTimeoutTask(alarm, device, band, user);
                 logSystemEvent(
                         user,
                         OP_TYPE_UNATTENDED_EVENT,
@@ -257,11 +259,11 @@ public class UnattendedService {
     /**
      * 检查近期告警
      */
-    private boolean hasRecentAlarms(String droneSn, Instant since) {
-        return alarmMapper.selectCount(new LambdaQueryWrapper<Alarm>()
-                .eq(Alarm::getDroneSn, droneSn)
-                .ge(Alarm::getIntrusionStartTime, Date.from(since)))
-                > 0;
+    private boolean hasRecentAlarms(String droneSn, Instant since, Date intrusionStartTime) {
+        long userId = StpUtil.getLoginIdAsLong();
+        List<Alarm> alarms = alarmMapper.selectRecentAlarms(droneSn, Date.from(since), intrusionStartTime, userId);
+        // 判断除当前告警外是否还有同一无人机的其他告警
+        return alarms.size() > 1;
     }
 
     /**

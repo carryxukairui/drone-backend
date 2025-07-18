@@ -145,7 +145,8 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
                 FROM alarm a
                 INNER JOIN device d ON a.scanID = d.id
                 WHERE d.device_user_id = #{userId}
-                  AND a.intrusion_start_time BETWEEN #{start} AND #{end}
+                  AND (#{start} IS NULL OR a.intrusion_start_time >= #{start})
+                  AND (#{end} IS NULL OR a.intrusion_start_time < #{end})
             """)
     Long countAlarmsByTime(
             @Param("userId") Long userId,
@@ -154,28 +155,50 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
     );
 
     @Select("""
+                SELECT COUNT(*)
+                FROM alarm a
+                INNER JOIN device d ON a.scanID = d.id
+                WHERE a.is_disposed = 1
+                  AND d.device_user_id = #{userId}
+                  AND (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime})
+                  AND (#{endTime} IS NULL OR a.intrusion_start_time < #{endTime})
+            """)
+    Long countDisposedAlarms(
+            @Param("userId") Long userId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime
+    );
+
+    @Select("""
                 SELECT COUNT(*) AS total
                 FROM (
                     SELECT 
                         a.drone_sn,
                         ROW_NUMBER() OVER (PARTITION BY a.drone_sn ORDER BY a.intrusion_start_time DESC) AS rn,
-                        a.is_disposed
+                        a.is_disposed,
+                        a.intrusion_start_time
                     FROM alarm a
                     INNER JOIN device dev ON a.scanID = dev.id
                     WHERE dev.device_user_id = #{userId}
+                      AND a.intrusion_start_time >= CURDATE()
+                      AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
                 ) t
                 WHERE t.rn = 1 AND t.is_disposed = 0
             """)
     Long countUndisposedAlarms(@Param("userId") Long userId);
+
 
     @Select("""
                 SELECT SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand, COUNT(*) AS sortie_count
                 FROM alarm a
                 INNER JOIN device d ON a.scanID = d.id
                 WHERE d.device_user_id = #{userId}
+                  AND a.intrusion_start_time >= CURDATE()
+                  AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
                 GROUP BY brand
             """)
     List<Map<String, Object>> countFlightByBrand(@Param("userId") Long userId);
+
 
     @Select("""
                 SELECT LPAD(HOUR(a.intrusion_start_time), 2, '0') AS hourStr, COUNT(*) AS sortieCount
