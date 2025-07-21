@@ -218,8 +218,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         User user = userMapper.selectById(userId);
         //todo: 拦截器获取user
         unattendedService.onTdoaAlarm(alarm, user,true);
-        alarm.setIsDisposed(1);
-        alarmMapper.updateById(alarm);
         return Result.success("处置成功");
     }
 

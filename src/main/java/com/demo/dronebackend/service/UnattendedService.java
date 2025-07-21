@@ -53,13 +53,8 @@ public class UnattendedService {
 
     public void onTdoaAlarm(Alarm alarm, User u, boolean isManualTrigger) {
 
-        // 先判断是否是手动处置，手动则跳过，非手动才会去判断是否是无人值守
-        if (!isManualTrigger && u.getUnattended() != 1) {
-            // 非手动且有人值守，返回
-            return;
-        }
         // 检查用户和无人机状态
-        if (!isValidTrigger(alarm, u)) return;
+        if (!isValidTrigger(alarm, u, isManualTrigger)) return;
 
         // 区域判断
         if (!isInActionArea(alarm, u)) return;
@@ -95,8 +90,17 @@ public class UnattendedService {
     /**
      * 验证触发条件
      */
-    private boolean isValidTrigger(Alarm alarm, User user) {
-        // 非黑名单无人机
+    private boolean isValidTrigger(Alarm alarm, User user, boolean isManualTrigger) {
+        // 手动触发，只判断是否有位置信息即可，无论是无人值守还是非黑名单都返回true
+        if (isManualTrigger) {
+            return alarm.getLastLatitude() != null && alarm.getLastLongitude() != null;
+        }
+
+        // 非手动，判断是否是无人值守
+        if (user.getUnattended() != 1) {
+            return false;
+        }
+        // 无人值守情况下只自动处置黑名单无人机，非黑飞无人机不处理
         if (!TYPE_ILLEGAL.equals(droneMapper.findTypeBySn(alarm.getDroneSn()))) {
             logSystemEvent(
                     user,
@@ -107,8 +111,7 @@ public class UnattendedService {
             );
             return false;
         }
-
-        // 缺少必要位置信息
+        // 判断是否有位置信息
         return alarm.getLastLatitude() != null && alarm.getLastLongitude() != null;
     }
 
@@ -202,7 +205,13 @@ public class UnattendedService {
     private void handleJammerOperation(Alarm alarm, Device device, int band,User user) {
 
         // 发送开启指令
-        sendJammerCommand(device.getId(), ACTION_ON, band,user);
+        boolean isSuccess = sendJammerCommand(device.getId(), ACTION_ON, band, user);
+        if (!isSuccess){
+            return;
+        }
+        // 更新alarm
+        alarm.setIsDisposed(1);
+        alarmMapper.updateById(alarm);
         // 记录干扰开始事件
         logSystemEvent(
                 user,
@@ -210,7 +219,6 @@ public class UnattendedService {
                 String.format("启动干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
                         device.getId(), band, alarm.getDroneSn())
         );
-
         // 管理定时任务
         manageTimeoutTask(alarm, device, band,user);
     }
@@ -229,13 +237,20 @@ public class UnattendedService {
             if (!hasRecentAlarms(droneSn, checkStartTime,alarm.getIntrusionStartTime())) {
                 log.info("关闭干扰设备 | 设备ID:{} | 频段:{} | 无人机SN:{}",
                         device.getId(), band, droneSn);
-                sendJammerCommand(device.getId(), ACTION_OFF, band,user);
+                String desc = String.format("关闭干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
+                        device.getId(), band, droneSn);
+                for (int i = 0; i < 2; i++) {
+                    if (sendJammerCommand(device.getId(), ACTION_OFF, band, user)) break;
+                    if (i == 1){
+                        desc = String.format("关闭干扰设备失败 | 设备ID:%s | 频段:%d | 无人机SN:%s",
+                                device.getId(), band, droneSn);
+                    }
+                }
                 // 记录干扰结束事件
                 logSystemEvent(
                         user,
                         OP_TYPE_UNATTENDED_EVENT,
-                        String.format("关闭干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
-                                device.getId(), band, droneSn)
+                        desc
                 );
             } else {
                 // 无人机仍在活动，重新调度检查
@@ -269,7 +284,7 @@ public class UnattendedService {
     /**
      * 发送干扰指令
      */
-    private void sendJammerCommand(String deviceId, String action, int band, User user) {
+    private boolean sendJammerCommand(String deviceId, String action, int band, User user) {
         int onoff09 = 2;
         int onoff16 = 2;
         int onoff24 = 2;
@@ -307,7 +322,6 @@ public class UnattendedService {
                     .writeValueAsString(payload);
 
             mqttService.publish(topic, message);
-
             log.info("MQTT指令已发送 | 主题:{} | 动作:{} | 频段:{}", topic, action, band);
             // 成功也写入日志，方便审计每次下发内容
             logSystemEvent(
@@ -316,11 +330,13 @@ public class UnattendedService {
                     String.format("MQTT指令已发送 | 设备:%s | 动作:%s | 频段:%d | payload:%s",
                             deviceId, action, band, payload)
             );
+            return true;
         } catch (Exception e) {
             String errorMsg = String.format("MQTT指令发送失败 | 设备:%s | 动作:%s | 频段:%d | 错误:%s",
                     deviceId, action, band, e.getMessage());
             log.error(errorMsg, e);
             logSystemEvent(user, OP_TYPE_UNATTENDED_MQTT_FAIL, errorMsg);
+            return false;
         }
     }
 
@@ -365,7 +381,7 @@ public class UnattendedService {
         systemLog.setUsername(user.getName());
         systemLog.setOperationType(operationType);
         systemLog.setDescription(description);
-        systemLog.setCreatedTime(new Date());
+        //systemLog.setCreatedTime(new Date());
 
         systemLogMapper.insert(systemLog);
     }
