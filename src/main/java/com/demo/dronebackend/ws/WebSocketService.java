@@ -13,7 +13,9 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,6 +33,7 @@ public class WebSocketService {
         private String deviceType;
         private int page;
         private int size;
+
         public UserPref(String deviceType, int page, int size) {
             this.deviceType = deviceType;
             this.page = page;
@@ -38,6 +41,7 @@ public class WebSocketService {
         }
 
     }
+
     /**
      * 添加某个用户的新会话
      */
@@ -63,32 +67,28 @@ public class WebSocketService {
     /**
      * 给指定用户推送设备状态（替代原来的全局广播）
      */
-    public void sendDeviceListToUser(String userId,  DeviceDTO  allDto) {
-        String json = convertToJson(allDto);
-        List<WebSocketSession> list = sessionsByUser.get(userId);
-        if (list == null) return;
+    public void sendDeviceListToUser(String type, String userId, Object payloadObj) {
+        List<WebSocketSession> sessions = sessionsByUser.get(userId);
+        if (sessions == null) return;
 
-        System.out.println("Sending to user " + userId + ": " + json);
-        for (WebSocketSession session : list) {
+        for (WebSocketSession session : sessions) {
             if (!session.isOpen()) continue;
 
+            MyPage<Object> page = new MyPage<>();
+            page.setCurrent(1);
+            page.setSize(10);
+            page.setSocketType(type);
 
-            List<DeviceDTO> allDtos = new ArrayList<>();
-            allDtos.add(allDto);
-
-            MyPage<DeviceDTO> report = new MyPage<>();
-            report.setCurrent(1);
-            report.setSize(10);
-            report.setTotal(allDtos.size());
-            report.setPages(allDtos.size());
-            report.setRecords(allDtos);
-            report.setSocketType("device");
+            Map<String, Object> recordMap = Collections.singletonMap(type, payloadObj);
+            page.setTotal(1);
+            page.setPages(1);
+            page.setRecords(recordMap);
 
             // 发送
             try {
                 String payload = new ObjectMapper()
                         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                        .writeValueAsString(report);
+                        .writeValueAsString(page);
                 session.sendMessage(new TextMessage(payload));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -96,8 +96,10 @@ public class WebSocketService {
         }
     }
 
+
     /**
      * 推送实时告警给用户
+     *
      * @param userId 用户id
      * @param myPage 分页告警信息
      */
@@ -125,7 +127,7 @@ public class WebSocketService {
     /**
      * JSON 序列化
      */
-    private String convertToJson( DeviceDTO report) {
+    private String convertToJson(DeviceDTO report) {
         ObjectMapper mapper = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         try {
@@ -135,7 +137,9 @@ public class WebSocketService {
         }
     }
 
-    /** 当偏好变更时，前端也可以直接调用： */
+    /**
+     * 当偏好变更时，前端也可以直接调用：
+     */
     public void pushToSession(WebSocketSession session) {
         // 假设你有一个全局缓存 lastDeviceMap: userId -> List<DeviceDTO>
 //        String userId = (String) session.getAttributes().get(SystemConstants.DEVICES_WEBSOCKET_TOPIC);

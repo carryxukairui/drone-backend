@@ -37,4 +37,5 @@ public class SystemConstants {
 
     public static final String ALARM_WEBSOCKET_TOPIC = "alarm";
     public static final String DEVICES_WEBSOCKET_TOPIC = "devices";
+    public static final String UNATTENDED_WEBSOCKET_TOPIC = "unattended";
 }

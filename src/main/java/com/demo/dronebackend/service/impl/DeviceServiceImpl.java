@@ -7,21 +7,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
-import com.demo.dronebackend.dto.hardware.Scanner;
 import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.dto.screen.DeviceDTO;
-import com.demo.dronebackend.dto.screen.DeviceDetailDTO;
-import com.demo.dronebackend.dto.screen.DeviceSettingReq;
-import com.demo.dronebackend.dto.screen.DisposalRecordDto;
+import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
+import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.DisposalRecord;
+import com.demo.dronebackend.pojo.SystemLog;
 import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
@@ -37,10 +35,17 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
+import static com.demo.dronebackend.constant.SystemConstants.UNATTENDED_WEBSOCKET_TOPIC;
+import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_EVENT;
 
 /**
  * @author 28611
@@ -58,8 +63,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final WebSocketService webSocketService;
     private final TiandituService tiandituService;
     private final MqttService mqttService;
+    private final SystemLogMapper systemLogMapper;
     private static final String topic = "device/command/startJam";
-
+    private static final DateTimeFormatter DTF =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -146,18 +153,18 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
     @Override
     public Map<String, Object> websocketDevice(StatusReport report) {
-
-
         Device dev = deviceMapper.selectById(report.getId());
-        if(dev == null)
-            return null;
+        if (dev == null) {
+            return Map.of("code", 404, "msg", "Device not found");
+        }
+
         String userId = String.valueOf(dev.getDeviceUserId());
+
         dev.setLongitude(report.getLng());
         dev.setLatitude(report.getLat());
         dev.setLinkStatus(report.getLinkState());
         dev.setIp(report.getIp());
         dev.setStationId(report.getStationId());
-
         deviceMapper.updateById(dev);
 
         DeviceDTO dto = new DeviceDTO();
@@ -174,9 +181,38 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
 
         String deviceTopic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
-        webSocketService.sendDeviceListToUser(deviceTopic, dto);
+        webSocketService.sendDeviceListToUser("device",deviceTopic, dto);
 
 
+        //无人值守逻辑
+        User user = userMapper.selectById(userId);
+
+        if (user != null && Integer.valueOf(1).equals(user.getUnattended())) {
+            List<SystemLog> logs = systemLogMapper.selectList(
+                    new LambdaQueryWrapper<SystemLog>()
+                            .eq(SystemLog::getUserId, userId)
+                            .eq(SystemLog::getOperationType, OP_TYPE_UNATTENDED_EVENT)
+                            .orderByDesc(SystemLog::getCreatedTime)
+                            .last("LIMIT 20")
+            );
+
+            List<SystemLogDTO> logDtos = logs.stream()
+                    .map(log -> {
+                        SystemLogDTO dtos = new SystemLogDTO();
+                        dtos.setOperationType(log.getOperationType());
+                        LocalDateTime ldt = LocalDateTime.ofInstant(
+                                log.getCreatedTime().toInstant(),
+                                ZoneId.systemDefault()
+                        );
+                        dtos.setCreatedTime(ldt.format(DTF));
+                        dtos.setDescription(log.getDescription());
+                        return dtos;
+                    })
+                    .toList();
+
+            String noAttendedTopic = UNATTENDED_WEBSOCKET_TOPIC + ":" + userId;
+            webSocketService.sendDeviceListToUser("noAttended", noAttendedTopic, logDtos);
+        }
         return Map.of("code", 200, "msg", "Success");
     }
 

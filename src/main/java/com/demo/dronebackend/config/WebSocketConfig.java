@@ -2,16 +2,13 @@ package com.demo.dronebackend.config;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.demo.dronebackend.constant.SystemConstants;
-import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.ws.AlarmWebSocketHandler;
-import com.demo.dronebackend.ws.MyWebSocketHandler;
+import com.demo.dronebackend.ws.DeviceWebSocketHandler;
 import com.demo.dronebackend.ws.WebSocketService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -47,18 +44,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
                         String query = uri.getQuery(); // 例：token=eyJhbGciOiJIUzI1NiIsInR
                         if (query != null && query.startsWith(SA_TOKEN)) {
                             String token = query.substring(SA_TOKEN.length());
-                            // 登录校验
-//                            try {
-//                                StpUtil.checkLogin();
-//                            } catch (Exception e) {
-//                                throw new BusinessException(e.getMessage());
-//                            }
                             StpUtil.checkLogin();
                             String userId = StpUtil.getLoginIdByToken(token).toString();
                             if (userId != null) {
                                 String topicKey = SystemConstants.DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+                                String unattedTopicKey = SystemConstants.UNATTENDED_WEBSOCKET_TOPIC + ":" + userId;
                                 // 4. 把 userId 放到 WebSocketSession 属性里
                                 attributes.put(SystemConstants.DEVICES_WEBSOCKET_TOPIC, topicKey);
+                                attributes.put(SystemConstants.UNATTENDED_WEBSOCKET_TOPIC, unattedTopicKey);
                                 return true;
                             }
                         }
@@ -109,7 +102,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Bean
     public WebSocketHandler myHandler() {
-        return new MyWebSocketHandler(webSocketService);
+        return new DeviceWebSocketHandler(webSocketService);
     }
 
     @Bean
