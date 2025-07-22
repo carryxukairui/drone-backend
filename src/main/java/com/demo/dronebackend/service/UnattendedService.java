@@ -234,7 +234,7 @@ public class UnattendedService {
 
             // 检查过去10秒内是否有同一无人机的告警
             Instant checkStartTime = Instant.now().minusSeconds(INTERFERENCE_DURATION_SECONDS);
-            if (!hasRecentAlarms(droneSn, checkStartTime,alarm.getIntrusionStartTime())) {
+            if (!hasRecentAlarms(user.getId(),droneSn, checkStartTime,alarm.getIntrusionStartTime())) {
                 log.info("关闭干扰设备 | 设备ID:{} | 频段:{} | 无人机SN:{}",
                         device.getId(), band, droneSn);
                 String desc = String.format("关闭干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
@@ -274,9 +274,9 @@ public class UnattendedService {
     /**
      * 检查近期告警
      */
-    private boolean hasRecentAlarms(String droneSn, Instant since, Date intrusionStartTime) {
-        long userId = StpUtil.getLoginIdAsLong();
+    private boolean hasRecentAlarms(Long userId,String droneSn, Instant since, Date intrusionStartTime) {
         List<Alarm> alarms = alarmMapper.selectRecentAlarms(droneSn, Date.from(since), intrusionStartTime, userId);
+        log.info("近期告警数量:{}", alarms.size());
         // 判断除当前告警外是否还有同一无人机的其他告警
         return alarms.size() > 1;
     }
@@ -354,7 +354,6 @@ public class UnattendedService {
             return BAND_5_8GHZ;  // 5.8GHz
         }
     }
-
     private double distance(double lat1, double lon1, double lat2, double lon2) {
         // 地球半径（米）
         final double R = 6_371_000;
@@ -373,6 +372,7 @@ public class UnattendedService {
         // 返回距离（米）
         return R * c;
     }
+
 
 
     private void logSystemEvent(User user, String operationType, String description) {
