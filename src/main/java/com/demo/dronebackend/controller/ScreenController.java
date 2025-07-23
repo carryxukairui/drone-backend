@@ -93,7 +93,7 @@ public class ScreenController {
     @PostMapping("/report")
     public Map<String, Object> reportStatus(@RequestBody StatusReport report) {
 
-        System.out.println("Received device status: " + report);
+//        System.out.println("Received device status: " + report);
 
         // 返回响应
         return deviceService.websocketDevice(report);
@@ -120,7 +120,7 @@ public class ScreenController {
      * 提交反制参数设置
      */
     @PostMapping("/devices/{id}/param-settings")
-    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId, @RequestBody DeviceSettingReq paramSettings) throws MqttException {
+    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId,@Valid @RequestBody DeviceSettingReq paramSettings) throws MqttException {
         return deviceService.updateDeviceParamSettings(deviceId, paramSettings);
     }
 

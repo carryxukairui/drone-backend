@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
@@ -15,6 +16,7 @@ import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
 import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.model.DelayTaskManager;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
@@ -24,6 +26,7 @@ import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
 import com.demo.dronebackend.service.TiandituService;
+import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.CurrentUserContext;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +36,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -41,11 +43,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.UNATTENDED_WEBSOCKET_TOPIC;
-import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_EVENT;
+import static com.demo.dronebackend.constant.SystemLogConstants.*;
+import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_MQTT_FAIL;
+import static com.demo.dronebackend.service.UnattendedService.ACTION_OFF;
+import static com.demo.dronebackend.service.UnattendedService.ACTION_ON;
 
 /**
  * @author 28611
@@ -229,6 +235,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     @Override
     public Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq paramSettings) throws MqttException {
         Device device = deviceMapper.selectById(deviceId);
+        User me = CurrentUserContext.get();
         if (device == null) {
             return Result.error("设备不存在");
         }
@@ -244,21 +251,20 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
 
         DeviceCommand command = new DeviceCommand(deviceId,
-                paramSettings.getG09OnOff(),
-                paramSettings.getG16OnOff(),
-                paramSettings.getG24OnOff(),
-                paramSettings.getG58OnOff());
+                paramSettings);
 
         //TODO: 将设备修改信息通过MQTT发送给硬件
         try {
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                     .writeValueAsString(command);
-            System.out.println("MQTT指令已发送 | 命令:  |"+ payload);
+            String topic = SystemConstants.TOPIC;
             mqttService.publish(topic, payload);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error(String.valueOf(e));
+
         }
+
         return Result.success("更新成功");
     }
 

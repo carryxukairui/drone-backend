@@ -96,6 +96,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
+        myPage.setSocketType("alarm");
         return Result.success(myPage);
     }
 

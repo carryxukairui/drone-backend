@@ -1,8 +1,8 @@
 package com.demo.dronebackend.service;
 
 
-import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.mapper.*;
 import com.demo.dronebackend.model.DelayTaskManager;
@@ -41,8 +41,8 @@ public class UnattendedService {
     private static final String DEVICE_TYPE_JAMMER = "JAMMER";
     // 常量定义
     private static final String TYPE_ILLEGAL = "illegal";
-    private static final String ACTION_ON = "ON";
-    private static final String ACTION_OFF = "OFF";
+    public static final String ACTION_ON = "ON";
+    public static final String ACTION_OFF = "OFF";
     private static final int INTERFERENCE_DURATION_SECONDS = 10;
 
     // 干扰频段常量
@@ -174,10 +174,13 @@ public class UnattendedService {
 
 
     /**
-     * 查找最近的干扰设备
+     * 查找距离告警点最近且在覆盖范围内的干扰设备
      */
     private Device findNearestJammer(Alarm alarm, User user) {
-        List<Device> jammers = deviceMapper.selectList(
+        double alarmLat = alarm.getLastLatitude();
+        double alarmLon = alarm.getLastLongitude();
+
+        List<Device> candidates = deviceMapper.selectList(
                 new LambdaQueryWrapper<Device>()
                         .eq(Device::getDeviceUserId, user.getId())
                         .eq(Device::getDeviceType, DEVICE_TYPE_JAMMER)
@@ -186,11 +189,16 @@ public class UnattendedService {
                         .isNotNull(Device::getLongitude)
         );
 
-        // 添加设备状态检查
-        return jammers.stream()
+
+        return candidates.stream()
+                // 过滤：距离必须 <= 该设备的 cover_range（单位：米）
+                .filter(d -> {
+                    double dist = distance(d.getLatitude(), d.getLongitude(), alarmLat, alarmLon);
+                    return dist <= (d.getCoverRange() != null ? d.getCoverRange() : 0);
+                })
+                // 选最小距离
                 .min(Comparator.comparing(d ->
-                        distance(d.getLatitude(), d.getLongitude(),
-                                alarm.getLastLatitude(), alarm.getLastLongitude())
+                        distance(d.getLatitude(), d.getLongitude(), alarmLat, alarmLon)
                 ))
                 .orElse(null);
     }
@@ -284,7 +292,7 @@ public class UnattendedService {
     /**
      * 发送干扰指令
      */
-    private boolean sendJammerCommand(String deviceId, String action, int band, User user) {
+    public boolean sendJammerCommand(String deviceId, String action, int band, User user) {
         int onoff09 = 2;
         int onoff16 = 2;
         int onoff24 = 2;
@@ -375,7 +383,7 @@ public class UnattendedService {
 
 
 
-    private void logSystemEvent(User user, String operationType, String description) {
+    public void logSystemEvent(User user, String operationType, String description) {
         SystemLog systemLog = new SystemLog();
         systemLog.setUserId(user.getId());
         systemLog.setUsername(user.getName());
