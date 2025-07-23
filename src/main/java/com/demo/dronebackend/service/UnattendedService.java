@@ -2,10 +2,10 @@ package com.demo.dronebackend.service;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.mapper.*;
 import com.demo.dronebackend.model.DelayTaskManager;
+import com.demo.dronebackend.model.TimingWheelDelayManager;
 import com.demo.dronebackend.pojo.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -36,6 +36,7 @@ public class UnattendedService {
     private final SystemLogMapper systemLogMapper;
     private final DelayTaskManager delayTaskManager;
     private final TiandituService tiandituService;
+    private final TimingWheelDelayManager timingWheelDelayManager;
     private static final String TYPE_LEGAL = "legal";
     // 设备类型常量
     private static final String DEVICE_TYPE_JAMMER = "JAMMER";
@@ -82,9 +83,54 @@ public class UnattendedService {
         // 4. 确定干扰频段
         int band = determineJammerBand(alarm.getFrequency());
 
-        // 5. 发送干扰指令并管理定时任务
-        handleJammerOperation(alarm, device, band, u );
 
+        // 发送 ON 干扰指令（重试机制）
+        sendJammerCommandWithRetry(device.getId(), ACTION_ON, band, u, 2);
+
+        // 标记已处置
+        alarm.setIsDisposed(1);
+        alarmMapper.updateById(alarm);
+        logSystemEvent(u, OP_TYPE_UNATTENDED_EVENT,
+                String.format("启动干扰 | 设备:%s | 频段:%d | SN:%s",
+                        device.getId(), band, alarm.getDroneSn()));
+
+        // 安排自动关闭任务：10秒后检查
+        scheduleAutoOff(device.getId(), alarm, band, u);
+    }
+
+    private void sendJammerCommandWithRetry(String deviceId, String action,
+                                            int band, User user, int maxRetries) {
+        for (int i = 0; i < maxRetries; i++) {
+            if (sendJammerCommand(deviceId, action, band, user)) {
+                return; // 成功后退出
+            }
+        }
+        logSystemEvent(user, OP_TYPE_UNATTENDED_EVENT,
+                String.format("%s 重试失败 | 设备ID:%s | 频段:%d", action, deviceId, band));
+    }
+
+    private void scheduleAutoOff(String deviceId, Alarm alarm, int band, User user) {
+        String key = deviceId + ":" + alarm.getDroneSn();
+        String droneSn = alarm.getDroneSn();
+        timingWheelDelayManager.scheduleTask(key, INTERFERENCE_DURATION_SECONDS, TimeUnit.SECONDS, () -> {
+            // 10秒后检查
+            Instant cutoff = Instant.now().minusSeconds(INTERFERENCE_DURATION_SECONDS);
+            boolean hasRecent = hasRecentAlarms(user.getId(), droneSn, cutoff, alarm.getIntrusionStartTime());
+
+            if (!hasRecent) {
+                // 若无新告警，关闭干扰并日志
+                sendJammerCommandWithRetry(deviceId, ACTION_OFF, band, user, 2);
+                logSystemEvent(user, OP_TYPE_UNATTENDED_EVENT,
+                        String.format("自动关闭干扰 | 设备ID:%s | 频段:%d | 无人机SN:%s",
+                                deviceId, band, droneSn));
+            } else {
+                // 若有新告警，重设定时器继续干扰
+                logSystemEvent(user, OP_TYPE_UNATTENDED_EVENT,
+                        String.format("无人机仍在活动，保持干扰 | 设备ID:%s | 无人机SN:%s",
+                                deviceId, droneSn));
+                scheduleAutoOff(deviceId, alarm, band, user);
+            }
+        }, true);
     }
 
     /**
@@ -207,82 +253,11 @@ public class UnattendedService {
         return regionMapper.selectByUserAndTypes(userId, types);
     }
 
-    /**
-     * 处理干扰设备操作
-     */
-    private void handleJammerOperation(Alarm alarm, Device device, int band,User user) {
-
-        // 发送开启指令
-        boolean isSuccess = sendJammerCommand(device.getId(), ACTION_ON, band, user);
-        if (!isSuccess){
-            return;
-        }
-        // 更新alarm
-        alarm.setIsDisposed(1);
-        alarmMapper.updateById(alarm);
-        // 记录干扰开始事件
-        logSystemEvent(
-                user,
-                OP_TYPE_UNATTENDED_EVENT,
-                String.format("启动干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
-                        device.getId(), band, alarm.getDroneSn())
-        );
-        // 管理定时任务
-        manageTimeoutTask(alarm, device, band,user);
-    }
-
-    /**
-     * 管理超时任务
-     */
-    private void manageTimeoutTask(Alarm alarm, Device device, int band,User user) {
-        String droneSn = alarm.getDroneSn();
-        // 创建关闭任务
-        Runnable closeTask = () -> {
-            log.info("检查干扰状态 | 设备ID:{} | 无人机SN:{}", device.getId(), droneSn);
-
-            // 检查过去10秒内是否有同一无人机的告警
-            Instant checkStartTime = Instant.now().minusSeconds(INTERFERENCE_DURATION_SECONDS);
-            if (!hasRecentAlarms(user.getId(),droneSn, checkStartTime,alarm.getIntrusionStartTime())) {
-                log.info("关闭干扰设备 | 设备ID:{} | 频段:{} | 无人机SN:{}",
-                        device.getId(), band, droneSn);
-                String desc = String.format("关闭干扰设备 | 设备ID:%s | 频段:%d | 无人机SN:%s",
-                        device.getId(), band, droneSn);
-                for (int i = 0; i < 2; i++) {
-                    if (sendJammerCommand(device.getId(), ACTION_OFF, band, user)) break;
-                    if (i == 1){
-                        desc = String.format("关闭干扰设备失败 | 设备ID:%s | 频段:%d | 无人机SN:%s",
-                                device.getId(), band, droneSn);
-                    }
-                }
-                // 记录干扰结束事件
-                logSystemEvent(
-                        user,
-                        OP_TYPE_UNATTENDED_EVENT,
-                        desc
-                );
-            } else {
-                // 无人机仍在活动，重新调度检查
-                manageTimeoutTask(alarm, device, band, user);
-                logSystemEvent(
-                        user,
-                        OP_TYPE_UNATTENDED_EVENT,
-                        String.format("无人机仍在活动，保持干扰 | 设备ID:%s | 无人机SN:%s",
-                                device.getId(), droneSn)
-                );
-            }
-        };
-
-        // 使用DelayTaskManager调度任务
-        // 任务标识: 设备ID:无人机SN
-        String key = device.getId() + ":" + droneSn;
-
-        delayTaskManager.scheduleDelayTask(key, closeTask, INTERFERENCE_DURATION_SECONDS, TimeUnit.SECONDS);
-    }
 
     /**
      * 检查近期告警
      */
-    private boolean hasRecentAlarms(Long userId,String droneSn, Instant since, Date intrusionStartTime) {
+    private boolean hasRecentAlarms(Long userId, String droneSn, Instant since, Date intrusionStartTime) {
         List<Alarm> alarms = alarmMapper.selectRecentAlarms(droneSn, Date.from(since), intrusionStartTime, userId);
         log.info("近期告警数量:{}", alarms.size());
         // 判断除当前告警外是否还有同一无人机的其他告警
@@ -309,11 +284,11 @@ public class UnattendedService {
         }
 
         switch (band) {
-            case 9    -> onoff09 = mode;
-            case 16   -> onoff16 = mode;
-            case 24   -> onoff24 = mode;
-            case 58   -> onoff58 = mode;
-            default   -> {
+            case 9 -> onoff09 = mode;
+            case 16 -> onoff16 = mode;
+            case 24 -> onoff24 = mode;
+            case 58 -> onoff58 = mode;
+            default -> {
                 // 非法频段，可以记录日志或抛异常
                 log.warn("未知频段 {}，保持所有频段原状态", band);
             }
@@ -325,11 +300,8 @@ public class UnattendedService {
                     .writeValueAsString(command);
 
             String topic = "device/command/startJam";
-            String message = new ObjectMapper()
-                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                    .writeValueAsString(payload);
 
-            mqttService.publish(topic, message);
+            mqttService.publish(topic, payload);
             log.info("MQTT指令已发送 | 主题:{} | 动作:{} | 频段:{}", topic, action, band);
             // 成功也写入日志，方便审计每次下发内容
             logSystemEvent(
@@ -362,6 +334,7 @@ public class UnattendedService {
             return BAND_5_8GHZ;  // 5.8GHz
         }
     }
+
     private double distance(double lat1, double lon1, double lat2, double lon2) {
         // 地球半径（米）
         final double R = 6_371_000;
@@ -380,7 +353,6 @@ public class UnattendedService {
         // 返回距离（米）
         return R * c;
     }
-
 
 
     public void logSystemEvent(User user, String operationType, String description) {
