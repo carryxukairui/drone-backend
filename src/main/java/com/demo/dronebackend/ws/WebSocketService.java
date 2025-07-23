@@ -80,7 +80,7 @@ public class WebSocketService {
             MyPage<Object> page = new MyPage<>();
             page.setCurrent(1);
             page.setSize(10);
-            page.setSocketType(type);
+            page.setSocketType("device");
 
             Map<String, Object> recordMap = Collections.singletonMap(type, payloadObj);
             page.setTotal(1);
