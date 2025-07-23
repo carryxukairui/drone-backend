@@ -12,9 +12,13 @@ public class AlarmConverter {
     public static Alarm fromReport(DroneReport report) {
         Alarm alarm = new Alarm();
         alarm.setDroneModel(report.getDroneModel());
+        // 最后经纬度
         alarm.setLastLongitude(report.getLongitude());
         alarm.setLastLatitude(report.getLatitude());
         alarm.setLastAltitude(report.getHeight());
+        // 飞手经纬度目前与最后经纬度一致
+        alarm.setPilotLongitude(report.getLongitude());
+        alarm.setPilotLatitude(report.getLatitude());
         alarm.setTakeoffTime(report.getIntrusionStartTime());
         Date landingTime = new Date(report.getIntrusionStartTime().getTime() + (long) (report.getLastingTime() * 1000));
         alarm.setLandingTime(landingTime);

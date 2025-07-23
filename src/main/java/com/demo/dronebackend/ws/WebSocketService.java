@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -21,12 +22,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
+@RequiredArgsConstructor
 public class WebSocketService {
 
     // key: userId，value: 该用户的所有 WebSocketSession
     private final ConcurrentMap<String, CopyOnWriteArrayList<WebSocketSession>> sessionsByUser = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, List<DeviceDTO>> lastDeviceMap = new ConcurrentHashMap<>();
 
+    private final ObjectMapper objectMapper;
 
     @Data
     public static class UserPref {
@@ -110,9 +113,7 @@ public class WebSocketService {
         try {
             myPage.setSocketType("alarm");
             // JSON 序列化
-            String payload = new ObjectMapper()
-                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                    .writeValueAsString(myPage);
+            String payload = objectMapper.writeValueAsString(myPage);
 
             for (WebSocketSession session : sessions) {
                 if (session.isOpen()) {
