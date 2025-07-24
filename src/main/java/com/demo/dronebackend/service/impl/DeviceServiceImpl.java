@@ -16,7 +16,7 @@ import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
 import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
-import com.demo.dronebackend.model.DelayTaskManager;
+import com.demo.dronebackend.model.DeviceDisposal;
 import com.demo.dronebackend.model.MyPage;
 import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.pojo.Device;
@@ -28,6 +28,7 @@ import com.demo.dronebackend.service.MqttService;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.CurrentUserContext;
+import com.demo.dronebackend.util.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -37,21 +38,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.UNATTENDED_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemLogConstants.*;
-import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_MQTT_FAIL;
-import static com.demo.dronebackend.service.UnattendedService.ACTION_OFF;
-import static com.demo.dronebackend.service.UnattendedService.ACTION_ON;
 
 /**
  * @author 28611
@@ -69,10 +69,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final WebSocketService webSocketService;
     private final TiandituService tiandituService;
     private final MqttService mqttService;
+    private final UnattendedService unattendedService;
     private final SystemLogMapper systemLogMapper;
+    private final DeviceDisposalManager deviceDisposalManager;
     private static final String topic = "device/command/startJam";
     private static final DateTimeFormatter DTF =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -81,7 +84,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (existDevice != null) {
             return Result.error("设备已存在");
         }
-
         Device device = new Device();
         device.setId(req.getId());
         device.setDeviceName(req.getDeviceName());
@@ -89,8 +91,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         device.setCoverRange(req.getCoverRange());
         device.setPower(req.getPower());
         device.setDeviceUserId(reqUserid);
-
-
         deviceMapper.insert(device);
 
         return Result.success("添加设备成功");
@@ -235,11 +235,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     @Override
     public Result<?> updateDeviceParamSettings(String deviceId, DeviceSettingReq paramSettings) throws MqttException {
         Device device = deviceMapper.selectById(deviceId);
-        User me = CurrentUserContext.get();
+        long userId = StpUtil.getLoginIdAsLong();
+        User user = userMapper.selectById(userId);
         if (device == null) {
             return Result.error("设备不存在");
         }
-
         DisposalRecord dr = new DisposalRecord();
         dr.setDeviceId(deviceId);
         dr.setG09Onoff(paramSettings.getG09OnOff());
@@ -248,24 +248,32 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dr.setG58Onoff(paramSettings.getG58OnOff());
         dr.setDuration(paramSettings.getDuration());
         disposalRecordMapper.insert(dr);
-
-
-        DeviceCommand command = new DeviceCommand(deviceId,
-                paramSettings);
-
-        //TODO: 将设备修改信息通过MQTT发送给硬件
+        DeviceCommand command = new DeviceCommand(deviceId, paramSettings);
+        // todo 将设备修改信息，持续时间通过MQTT发送给硬件
         try {
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                     .writeValueAsString(command);
             String topic = SystemConstants.TOPIC;
             mqttService.publish(topic, payload);
+            unattendedService.logSystemEvent(
+                    user,
+                    DEVICE_DISPOSAL_EVENT,
+                    String.format("MQTT指令已发送 | 设备:%s | payload:%s", deviceId, payload)
+            );
         } catch (Exception e) {
             log.error(String.valueOf(e));
-
+            unattendedService.logSystemEvent(
+                    user,
+                    DEVICE_DISPOSAL_EVENT,
+                    String.format("MQTT指令发送失败 | 设备:%s", deviceId)
+            );
+            return Result.error("更新失败");
         }
-
-        return Result.success("更新成功");
+        Instant start = Instant.now();
+        Instant end = start.plus(Duration.ofSeconds((long) paramSettings.getDuration()));
+        deviceDisposalManager.startDisposal(device, start, end);
+        return Result.success("设备处置已启动");
     }
 
     @Override

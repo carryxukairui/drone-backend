@@ -27,13 +27,13 @@ import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.util.AlarmConverter;
 import com.demo.dronebackend.util.CurrentUserContext;
+import com.demo.dronebackend.util.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.text.DateFormat;
@@ -44,6 +44,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
+import static com.demo.dronebackend.constant.SystemLogConstants.DEVICE_DISPOSAL_EVENT;
 
 /**
  * @author 28611
@@ -63,6 +64,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final WebSocketService webSocketService;
     private final UserMapper userMapper;
     private final UnattendedService unattendedService;
+    private final DeviceDisposalManager deviceDisposalManager;
 
     private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
@@ -82,9 +84,22 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         webSocketService.sendAlarmListToUser(topic, myPage);
 
         User user = userMapper.selectById(userId);
-        //TODO:判断是否无人值守模块
-        if (user != null) {
+        //TODO:判断是否是无人值守模式
+        if (user != null && user.getUnattended() == 1) {
             unattendedService.onTdoaAlarm(alarm, user,false);
+            return Result.success("推送成功");
+        }
+        // 判断该告警是否在处于反制状态的设备的反制区域内
+        String deviceId = deviceDisposalManager.isAlarmInDisposingArea(alarm);
+        if (deviceId != null) {
+            alarm.setIsDisposed(1);
+            alarmMapper.updateById(alarm);
+            unattendedService.logSystemEvent(
+                    user,
+                    DEVICE_DISPOSAL_EVENT,
+                    String.format("无人机%s已进入设备反制区域 | 告警ID:%d | 设备ID:%s",
+                            alarm.getDroneSn(), alarm.getId(), deviceId)
+            );
         }
         return Result.success("推送成功");
     }
@@ -121,8 +136,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (rawList.isEmpty()) {
             return new MyPage<RealTimeAlarmDTO>();
         }
-        log.info("告警数量：{}", rawList.size()+
-                ":   ", rawList);
         // 转换成DTO
         List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
             RealTimeAlarmDTO dto = new RealTimeAlarmDTO();

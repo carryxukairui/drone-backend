@@ -136,14 +136,9 @@ public class UnattendedService {
      * 验证触发条件
      */
     private boolean isValidTrigger(Alarm alarm, User user, boolean isManualTrigger) {
-        // 手动触发，只判断是否有位置信息即可，无论是无人值守还是非黑名单都返回true
+        // 手动触发，只判断是否有位置信息即可，无论是黑白名单都返回true
         if (isManualTrigger) {
             return alarm.getLastLatitude() != null && alarm.getLastLongitude() != null;
-        }
-
-        // 非手动，判断是否是无人值守
-        if (user.getUnattended() != 1) {
-            return false;
         }
         // 无人值守情况下只自动处置黑名单无人机，非黑飞无人机不处理
         if (!TYPE_ILLEGAL.equals(droneMapper.findTypeBySn(alarm.getDroneSn()))) {
