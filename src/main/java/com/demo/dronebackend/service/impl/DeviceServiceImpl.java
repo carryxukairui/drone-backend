@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -35,7 +36,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import com.demo.dronebackend.util.DeviceDisposalManager;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -46,12 +47,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
 import static com.demo.dronebackend.constant.SystemConstants.UNATTENDED_WEBSOCKET_TOPIC;
-import static com.demo.dronebackend.constant.SystemLogConstants.*;
+import static com.demo.dronebackend.constant.SystemLogConstants.DEVICE_DISPOSAL_EVENT;
+import static com.demo.dronebackend.constant.SystemLogConstants.OP_TYPE_UNATTENDED_EVENT;
 
 /**
  * @author 28611
@@ -84,6 +85,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (existDevice != null) {
             return Result.error("设备已存在");
         }
+
         Device device = new Device();
         device.setId(req.getId());
         device.setDeviceName(req.getDeviceName());
@@ -118,23 +120,25 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         Page<Device> page = new Page<>(q.getPage(), q.getSize());
 
         LambdaQueryWrapper<Device> qw = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(q.getDeviceName())) {
+        if (StrUtil.isNotBlank(q.getDeviceName())) {
             qw.like(Device::getDeviceName, q.getDeviceName());
         }
-        if (StringUtils.hasText(q.getDeviceType())) {
+        if (StrUtil.isNotBlank(q.getDeviceType())) {
             qw.eq(Device::getDeviceType, q.getDeviceType());
         }
-        if (StringUtils.hasText(q.getStationId())) {
+        if (StrUtil.isNotBlank(q.getStationId())) {
             qw.eq(Device::getStationId, q.getStationId());
         }
-        if (q.getLinkStatus() != null) {
-            qw.eq(Device::getLinkStatus, q.getLinkStatus());
+        Integer linkStatus = q.getLinkStatus();
+        if (linkStatus != null && (linkStatus == 0 || linkStatus == 1)) {
+            qw.eq(Device::getLinkStatus, linkStatus);
         }
-        if (q.getDeviceUserId() != null) {
+        if (StrUtil.isNotBlank(q.getDeviceUserId())) {
             qw.eq(Device::getDeviceUserId, q.getDeviceUserId());
         }
 
-        User me = CurrentUserContext.get();
+        long userId = StpUtil.getLoginIdAsLong();
+        User me = userMapper.selectById(userId);
         //普通用户
         if (!PermissionType.admin.getDesc().equals(me.getPermission())) {
             qw.eq(Device::getDeviceUserId, me.getId());
@@ -240,6 +244,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (device == null) {
             return Result.error("设备不存在");
         }
+
         DisposalRecord dr = new DisposalRecord();
         dr.setDeviceId(deviceId);
         dr.setG09Onoff(paramSettings.getG09OnOff());
@@ -339,7 +344,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setLinkStatus(d.getLinkStatus());
             dto.setLatitude(d.getLatitude());
             dto.setLongitude(d.getLongitude());
-            String location = tiandituService.reverseGeocode(d.getLongitude(), d.getLatitude());
+            String location = "位置";
+            if (d.getLatitude() == null || d.getLongitude() == null){
+                dto.setLocation(location);
+            }else {
+                 location = tiandituService.reverseGeocode(d.getLongitude(), d.getLatitude());
+
+            }
             dto.setLocation(location);
             return dto;
         }).collect(Collectors.toList());

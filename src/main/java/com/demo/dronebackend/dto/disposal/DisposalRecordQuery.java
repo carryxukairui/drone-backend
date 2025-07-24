@@ -19,7 +19,7 @@ public class DisposalRecordQuery {
     private Integer size = 10;
 
     /** 设备 ID */
-    private Long deviceId;
+    private String deviceId;
 
     /** 反制开始时间 ≥ counterStart */
 

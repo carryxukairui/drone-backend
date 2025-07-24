@@ -43,4 +43,10 @@ public class DeviceReq {
      */
     @NotNull(message = "deviceUserId 不能为空")
     private String deviceUserId;
+
+    /**
+     * 防空 ID，由前端传入
+     */
+    @NotBlank(message = "防空 ID 不能为空")
+    private String stationId;
 }

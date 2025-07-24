@@ -1,6 +1,7 @@
 package com.demo.dronebackend.controller;
 
 
+import cn.hutool.log.Log;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
@@ -24,7 +25,7 @@ public class DisposalController {
      */
     @GetMapping
     public Result<?> list(
-            @Valid DisposalRecordQuery query) {
+            @Valid @ModelAttribute DisposalRecordQuery query) {
         return disposalService.DisposalList(query);
     }
 

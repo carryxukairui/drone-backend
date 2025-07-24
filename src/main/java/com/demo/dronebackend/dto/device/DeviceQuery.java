@@ -21,7 +21,7 @@ public class DeviceQuery {
     private String deviceType;
 
     /** 绑定用户 ID */
-    private Long deviceUserId;
+    private String deviceUserId;
 
     /** 防区 ID */
     private String stationId;
