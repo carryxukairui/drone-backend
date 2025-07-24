@@ -72,7 +72,7 @@ public class DeviceController {
     获取设备列表，可分页；用户是自己的设备，管理员是所有人的设备
      */
     @GetMapping()
-    public Result<?> getDevices( @Valid DeviceQuery query) {
+    public Result<?> getDevices( @ModelAttribute DeviceQuery query) {
 
         return deviceService.listDevices(query);
     }

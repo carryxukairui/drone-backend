@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -45,7 +46,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
         Page<DisposalRecord> page = new Page<>(q.getPage(), q.getSize());
 
         LambdaQueryWrapper<DisposalRecord> qw = new LambdaQueryWrapper<>();
-        if (q.getDeviceId() != null) {
+        if (StrUtil.isNotBlank(q.getDeviceId())) {
             qw.eq(DisposalRecord::getDeviceId, q.getDeviceId());
         }
         if (q.getCounterStart() != null) {

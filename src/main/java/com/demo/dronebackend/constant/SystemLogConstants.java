@@ -18,5 +18,6 @@ public class SystemLogConstants {
     public static final String OP_TYPE_UNATTENDED_MQTT_SUCCESS = "UNATTENDED_MQTT_SUCCESS";
     // 无人值守MQTT消息发送失败
     public static final String OP_TYPE_UNATTENDED_MQTT_FAIL = "UNATTENDED_MQTT_FAIL";
-    public static final String DEVICE_PARAM_EVENT = "PARAMSETTINGS_EVENT";
+    // 手动设备处置
+    public static final String DEVICE_DISPOSAL_EVENT = "DEVICE_DISPOSAL_EVENT";
 }
