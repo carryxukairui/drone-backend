@@ -34,7 +34,6 @@ public class UnattendedService {
     private final AlarmMapper alarmMapper;
     private final MqttService mqttService;
     private final SystemLogMapper systemLogMapper;
-    private final DelayTaskManager delayTaskManager;
     private final TiandituService tiandituService;
     private final TimingWheelDelayManager timingWheelDelayManager;
     private static final String TYPE_LEGAL = "legal";

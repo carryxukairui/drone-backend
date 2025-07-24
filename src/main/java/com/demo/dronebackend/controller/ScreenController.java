@@ -51,7 +51,7 @@ public class ScreenController {
      * @param req 请求体
      */
     @GetMapping("alarms")
-    public Result<?> realtimeAlarms(@Valid @ModelAttribute RealtimeAlarmReq req) {
+    public Result<?> realtimeAlarms(@Valid @RequestBody RealtimeAlarmReq req) {
         return alarmService.realtimeAlarms(req);
     }
 

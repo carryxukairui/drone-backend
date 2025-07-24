@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -21,7 +20,7 @@ public class FlightHistoryDto {
     private String droneType;
     private Double frequency;
     private Double lastingTime;
-    private Boolean disposal;
+    private Integer disposal;
     private Double pilotLongitude;
     private Double pilotLatitude;
     //起飞的

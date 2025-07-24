@@ -121,15 +121,15 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (rawList.isEmpty()) {
             return new MyPage<RealTimeAlarmDTO>();
         }
+        log.info("告警数量：{}", rawList.size()+
+                ":   ", rawList);
         // 转换成DTO
         List<RealTimeAlarmDTO> allDtos = rawList.stream().map(row -> {
             RealTimeAlarmDTO dto = new RealTimeAlarmDTO();
             dto.setId(((Number) row.get("id")).longValue());
             dto.setDroneModel((String) row.get("drone_model"));
             dto.setDroneSn((String) row.get("drone_sn"));
-            String type = (String)row.get("d_type");
-            if (type==null) type="gray";
-            dto.setType(type);
+            dto.setType((String)row.get("d_type"));
             Object intrusionTimeObj = row.get("intrusion_start_time");
             if (intrusionTimeObj != null) {
                 dto.setIntrusionTime(intrusionTimeObj instanceof Timestamp
@@ -371,30 +371,27 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (q.getEndTime() != null) {
             qw.le(Alarm::getTakeoffTime, q.getEndTime());
         }
-        if (StringUtils.hasText(q.getDroneId())) {
+        if (StrUtil.isNotBlank(q.getDroneId())) {
             qw.like(Alarm::getDroneId, q.getDroneId());
         }
-        if (StringUtils.hasText(q.getDroneSn())) {
+        if (StrUtil.isNotBlank(q.getDroneSn())) {
             qw.like(Alarm::getDroneSn, q.getDroneSn());
         }
-        if (StringUtils.hasText(q.getModel())) {
+        if (StrUtil.isNotBlank(q.getModel())) {
             qw.eq(Alarm::getDroneModel, q.getModel());
         }
-        if (StringUtils.hasText(q.getDroneType())) {
+        if (StrUtil.isNotBlank(q.getDroneType())) {
             qw.eq(Alarm::getDroneType, q.getDroneType());
         }
 
         //TODO:反制是如何得知的？
         // 已反制/未反制过滤
         if (Boolean.TRUE.equals(q.getDisposalFlag())) {
-            qw.inSql(Alarm::getScanid,
-                    "SELECT id FROM device WHERE device_user_id = " + userId);
-            qw.isNotNull(Alarm::getLastingTime);
+            qw.eq(Alarm::getIsDisposed,1);
+
         } else if (Boolean.FALSE.equals(q.getDisposalFlag())) {
             // 未反制
-            qw.inSql(Alarm::getScanid,
-                    "SELECT id FROM device WHERE device_user_id = " + userId);
-            qw.isNull(Alarm::getLastingTime);
+            qw.eq(Alarm::getIsDisposed,0);
         }
 
         Page<Alarm> pr = alarmMapper.selectPage(page, qw);
@@ -410,7 +407,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             dto.setFrequency(r.getFrequency());
             dto.setLastingTime(r.getLastingTime());
             //TODO:反制
-            dto.setDisposal(true);
+            dto.setDisposal(r.getIsDisposed());
             dto.setPilotLongitude(r.getBackLongitude());
             dto.setPilotLatitude(r.getLastLatitude());
 
