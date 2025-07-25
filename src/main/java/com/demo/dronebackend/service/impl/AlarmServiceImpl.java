@@ -86,7 +86,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         User user = userMapper.selectById(userId);
         //TODO:判断是否是无人值守模式
         if (user != null && user.getUnattended() == 1) {
-            unattendedService.onTdoaAlarm(alarm, user,false);
+            unattendedService.onTdoaAlarm(alarm, user);
             return Result.success("推送成功");
         }
         // 判断该告警是否在处于反制状态的设备的反制区域内
@@ -229,10 +229,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         long alarmId = Long.parseLong(id);
         Alarm alarm = alarmMapper.selectById(alarmId);
         long userId = StpUtil.getLoginIdAsLong();
-        User user = userMapper.selectById(userId);
         //todo: 拦截器获取user
-        unattendedService.onTdoaAlarm(alarm, user,true);
-        return Result.success("处置成功");
+        User user = userMapper.selectById(userId);
+        return unattendedService.disposeAlarmManually(alarm, user);
     }
 
     @Override

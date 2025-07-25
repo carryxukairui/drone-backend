@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.mapper.*;
 import com.demo.dronebackend.model.DelayTaskManager;
+import com.demo.dronebackend.model.Result;
 import com.demo.dronebackend.model.TimingWheelDelayManager;
 import com.demo.dronebackend.pojo.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,10 +52,10 @@ public class UnattendedService {
     private static final int BAND_2_7GHZ = 24;
     private static final int BAND_5_8GHZ = 58;
 
-    public void onTdoaAlarm(Alarm alarm, User u, boolean isManualTrigger) {
+    public void onTdoaAlarm(Alarm alarm, User u) {
 
         // 检查用户和无人机状态
-        if (!isValidTrigger(alarm, u, isManualTrigger)) return;
+        if (!isValidTrigger(alarm, u)) return;
 
         // 区域判断
         if (!isInActionArea(alarm, u)) return;
@@ -97,6 +98,31 @@ public class UnattendedService {
         scheduleAutoOff(device.getId(), alarm, band, u);
     }
 
+    public Result<?> disposeAlarmManually(Alarm alarm, User user) {
+        if (alarm.getLastLatitude() == null || alarm.getLastLongitude() == null){
+            return Result.error("告警经纬度丢失");
+        }
+        // 区域判断
+        if (!isInActionArea(alarm, user)){
+            return Result.error("告警不在有效区域内");
+        }
+        // 查找最近的干扰设备
+        Device device = findNearestJammer(alarm, user);
+        if (device == null) {
+            return Result.error("未找到可用干扰设备");
+        }
+        // 确定干扰频段
+        int band = determineJammerBand(alarm.getFrequency());
+        // 发送 ON 干扰指令（重试机制）
+        sendJammerCommandWithRetry(device.getId(), ACTION_ON, band, user, 2);
+        // 标记已处置
+        alarm.setIsDisposed(1);
+        alarmMapper.updateById(alarm);
+        // 安排自动关闭任务：10秒后检查
+        scheduleAutoOff(device.getId(), alarm, band, user);
+        return Result.success("处置成功");
+    }
+
     private void sendJammerCommandWithRetry(String deviceId, String action,
                                             int band, User user, int maxRetries) {
         for (int i = 0; i < maxRetries; i++) {
@@ -135,11 +161,7 @@ public class UnattendedService {
     /**
      * 验证触发条件
      */
-    private boolean isValidTrigger(Alarm alarm, User user, boolean isManualTrigger) {
-        // 手动触发，只判断是否有位置信息即可，无论是黑白名单都返回true
-        if (isManualTrigger) {
-            return alarm.getLastLatitude() != null && alarm.getLastLongitude() != null;
-        }
+    private boolean isValidTrigger(Alarm alarm, User user) {
         // 无人值守情况下只自动处置黑名单无人机，非黑飞无人机不处理
         if (!TYPE_ILLEGAL.equals(droneMapper.findTypeBySn(alarm.getDroneSn()))) {
             logSystemEvent(
