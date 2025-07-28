@@ -1,0 +1,11 @@
+# 字段映射配置，用于将不同硬件厂商上报的无人机侦测数据的字段映射为统一字段，DroneReport
+# 仅需配置字段名不一致的字段，无需配置字段名相同或不存在的字段
+# 格式：
+# vendorA:
+#   filed1: filedA  DroneReport字段名: 硬件上传的JSON字段名
+#   filed2: filedB
+#   ......
+
+
+# 默认配置，与DroneReport一致，无需映射
+default:

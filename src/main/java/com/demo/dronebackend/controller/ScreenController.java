@@ -13,6 +13,8 @@ import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.RegionService;
 import com.demo.dronebackend.service.DisposalRecordService;
 import com.demo.dronebackend.service.UserService;
+import com.demo.dronebackend.util.DroneReportMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +35,15 @@ public class ScreenController {
 
     private final RegionService regionService;
     private final UserService userService;
+    private final DroneReportMapper droneReportMapper;
 
     /**
      * 响应硬件发送请求
-     *
-     * @param report 无人机侦测上报数据
+     * @param raw 无人机原始侦测上报数据
      */
     @PostMapping("/report/drone")
-    public Result<?> reportDrone(@Valid @RequestBody DroneReport report) {
+    public Result<?> reportDrone(@RequestBody JsonNode raw) {
+        DroneReport report = droneReportMapper.mapWithVendor(raw, "default");
         return alarmService.handleDroneReport(report);
     }
 

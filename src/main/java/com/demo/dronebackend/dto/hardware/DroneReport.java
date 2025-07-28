@@ -1,5 +1,6 @@
 package com.demo.dronebackend.dto.hardware;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -7,6 +8,10 @@ import java.util.Date;
 
 @Data
 public class DroneReport {
+
+    // 用于标识厂商，仅在内部使用
+    @JsonIgnore
+    private String vendor;
 
     private String stationId;
 
@@ -16,7 +21,6 @@ public class DroneReport {
 
     private Integer detectType;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date intrusionStartTime;
 
     private Double longitude;
