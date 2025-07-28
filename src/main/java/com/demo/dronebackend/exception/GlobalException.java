@@ -1,8 +1,7 @@
 package com.demo.dronebackend.exception;
 
-import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.SaTokenException;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

@@ -3,7 +3,7 @@ package com.demo.dronebackend.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.demo.dronebackend.dto.admin.*;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

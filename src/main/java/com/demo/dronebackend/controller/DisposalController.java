@@ -1,16 +1,12 @@
 package com.demo.dronebackend.controller;
 
 
-import cn.hutool.log.Log;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
-import com.demo.dronebackend.model.Result;
-import com.demo.dronebackend.pojo.DisposalRecord;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.service.DisposalRecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

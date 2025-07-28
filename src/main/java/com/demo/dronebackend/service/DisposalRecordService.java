@@ -2,7 +2,7 @@ package com.demo.dronebackend.service;
 
 
 import com.demo.dronebackend.dto.disposal.DisposalRecordQuery;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 

@@ -2,9 +2,9 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
-import com.demo.dronebackend.dto.hardware.StatusReport;
+import com.demo.dronebackend.dto.hardware.DeviceReport;
 import com.demo.dronebackend.dto.screen.DeviceSettingReq;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -27,7 +27,7 @@ public interface DeviceService extends IService<Device> {
 
     Result<?> deleteBatch(List<Long> ids);
 
-    Map<String,Object> websocketDevice(StatusReport report);
+    Map<String,Object> websocketDevice(DeviceReport report);
 
     Result<?> getDeviceDetail(String deviceId);
 

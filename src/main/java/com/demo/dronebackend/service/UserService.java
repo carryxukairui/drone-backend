@@ -2,7 +2,7 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.admin.*;
 import com.demo.dronebackend.exception.BusinessException;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 

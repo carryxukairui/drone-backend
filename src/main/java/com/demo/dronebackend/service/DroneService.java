@@ -1,12 +1,9 @@
 package com.demo.dronebackend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.demo.dronebackend.model.MyPage;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Drone;
 import com.baomidou.mybatisplus.extension.service.IService;
-
-import java.util.List;
 
 /**
 * @author 28611

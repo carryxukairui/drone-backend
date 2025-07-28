@@ -1,4 +1,4 @@
-package com.demo.dronebackend.util;
+package com.demo.dronebackend.model;
 
 
 import com.aliyun.dysmsapi20170525.Client;

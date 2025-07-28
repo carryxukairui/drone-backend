@@ -1,19 +1,15 @@
 package com.demo.dronebackend.controller;
 
 
+import com.demo.dronebackend.dto.hardware.DeviceReport;
 import com.demo.dronebackend.dto.hardware.DroneReport;
-import com.demo.dronebackend.dto.hardware.StatusReport;
 import com.demo.dronebackend.dto.screen.DeviceSettingReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.RegionReq;
-import com.demo.dronebackend.model.Result;
-import com.demo.dronebackend.service.AlarmService;
-import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.service.RegionService;
-import com.demo.dronebackend.service.DisposalRecordService;
-import com.demo.dronebackend.service.UserService;
-import com.demo.dronebackend.util.DroneReportMapper;
+import com.demo.dronebackend.model.ReportVendor;
+import com.demo.dronebackend.service.*;
+import com.demo.dronebackend.util.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -35,15 +30,16 @@ public class ScreenController {
 
     private final RegionService regionService;
     private final UserService userService;
-    private final DroneReportMapper droneReportMapper;
+    private final ReportVendor reportVendor;
 
     /**
      * 响应硬件发送请求
+     *
      * @param raw 无人机原始侦测上报数据
      */
     @PostMapping("/report/drone")
     public Result<?> reportDrone(@RequestBody JsonNode raw) {
-        DroneReport report = droneReportMapper.mapWithVendor(raw, "default");
+        DroneReport report = reportVendor.DroneWithVendor(raw, "default");
         return alarmService.handleDroneReport(report);
     }
 
@@ -90,15 +86,13 @@ public class ScreenController {
     /**
      * websocket获取硬件数据
      *
-     * @param report
+     * @param raw
      * @return
      */
     @PostMapping("/report")
-    public Map<String, Object> reportStatus(@RequestBody StatusReport report) {
-
-//        System.out.println("Received device status: " + report);
-
-        // 返回响应
+    public Map<String, Object> reportStatus(@RequestBody JsonNode raw) {
+        DeviceReport report = reportVendor.DeviceWithVendor(raw, "default");
+        System.out.println(report);
         return deviceService.websocketDevice(report);
     }
 
@@ -123,7 +117,7 @@ public class ScreenController {
      * 提交反制参数设置
      */
     @PostMapping("/devices/{id}/param-settings")
-    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId,@Valid @RequestBody DeviceSettingReq paramSettings) throws MqttException {
+    public Result<?> updateDeviceParamSettings(@PathVariable("id") String deviceId, @Valid @RequestBody DeviceSettingReq paramSettings) throws MqttException {
         return deviceService.updateDeviceParamSettings(deviceId, paramSettings);
     }
 

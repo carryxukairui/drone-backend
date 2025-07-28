@@ -1,4 +1,4 @@
-package com.demo.dronebackend.util;
+package com.demo.dronebackend.model;
 
 import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.pojo.Alarm;

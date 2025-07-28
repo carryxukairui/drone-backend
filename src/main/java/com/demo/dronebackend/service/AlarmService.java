@@ -6,7 +6,7 @@ import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
 import com.baomidou.mybatisplus.extension.service.IService;
 

@@ -2,13 +2,12 @@ package com.demo.dronebackend.interceptor;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.demo.dronebackend.mapper.UserMapper;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.User;
-import com.demo.dronebackend.util.CurrentUserContext;
+import com.demo.dronebackend.model.CurrentUserContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;

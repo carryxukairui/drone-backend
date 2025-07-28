@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.demo.dronebackend.dto.screen.AlertRegionDTO;
 import com.demo.dronebackend.dto.screen.RegionReq;
 import com.demo.dronebackend.mapper.RegionMapper;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Region;
 import com.demo.dronebackend.service.RegionService;
 import com.demo.dronebackend.service.TiandituService;

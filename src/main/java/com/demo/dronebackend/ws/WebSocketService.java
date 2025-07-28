@@ -2,7 +2,7 @@ package com.demo.dronebackend.ws;
 
 import com.demo.dronebackend.dto.screen.DeviceDTO;
 import com.demo.dronebackend.dto.screen.RealTimeAlarmDTO;
-import com.demo.dronebackend.model.MyPage;
+import com.demo.dronebackend.util.MyPage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -13,7 +13,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

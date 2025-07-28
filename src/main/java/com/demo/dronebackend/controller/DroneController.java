@@ -1,14 +1,11 @@
 package com.demo.dronebackend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.demo.dronebackend.model.MyPage;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Drone;
 import com.demo.dronebackend.service.DroneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/drones")

@@ -1,4 +1,4 @@
-package com.demo.dronebackend.model;
+package com.demo.dronebackend.util;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.AllArgsConstructor;

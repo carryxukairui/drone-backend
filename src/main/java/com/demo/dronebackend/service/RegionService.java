@@ -1,7 +1,7 @@
 package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.screen.RegionReq;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Region;
 import com.baomidou.mybatisplus.extension.service.IService;
 

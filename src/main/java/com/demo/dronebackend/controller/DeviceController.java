@@ -5,8 +5,8 @@ import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
 import com.demo.dronebackend.dto.disposal.BatchDeleteRequest;
-import com.demo.dronebackend.dto.hardware.StatusReport;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.dto.hardware.DeviceReport;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -92,8 +92,8 @@ public class DeviceController {
      */
     @PostMapping("/sub")
     @CrossOrigin
-    public Map<String, Object> sub(@RequestBody StatusReport statusReport) {
-        return deviceService.websocketDevice(statusReport);
+    public Map<String, Object> sub(@RequestBody DeviceReport deviceReport) {
+        return deviceService.websocketDevice(deviceReport);
     }
 
 

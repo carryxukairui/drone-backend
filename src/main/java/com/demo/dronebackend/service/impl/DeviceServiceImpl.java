@@ -9,7 +9,7 @@ import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
-import com.demo.dronebackend.dto.hardware.StatusReport;
+import com.demo.dronebackend.dto.hardware.DeviceReport;
 import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
@@ -17,9 +17,8 @@ import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
 import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
-import com.demo.dronebackend.model.DeviceDisposal;
-import com.demo.dronebackend.model.MyPage;
-import com.demo.dronebackend.model.Result;
+import com.demo.dronebackend.util.MyPage;
+import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.SystemLog;
@@ -28,15 +27,13 @@ import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
-import com.demo.dronebackend.util.CurrentUserContext;
-import com.demo.dronebackend.util.DeviceDisposalManager;
+import com.demo.dronebackend.model.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Service;
-import com.demo.dronebackend.util.DeviceDisposalManager;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -162,7 +159,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     }
 
     @Override
-    public Map<String, Object> websocketDevice(StatusReport report) {
+    public Map<String, Object> websocketDevice(DeviceReport report) {
         Device dev = deviceMapper.selectById(report.getId());
         if (dev == null) {
             return Map.of("code", 404, "msg", "Device not found");
