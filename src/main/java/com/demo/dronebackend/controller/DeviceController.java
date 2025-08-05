@@ -10,6 +10,7 @@ import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -90,11 +91,10 @@ public class DeviceController {
     /**
      * 订阅设备状态
      */
-    @PostMapping("/sub")
+    @PostMapping("/sub/12")
     @CrossOrigin
     public Map<String, Object> sub(@RequestBody DeviceReport deviceReport) {
         return deviceService.websocketDevice(deviceReport);
     }
-
 
 }

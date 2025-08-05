@@ -53,7 +53,7 @@ public class ReportVendor {
             }
         }
 
-        report.setVendor(vendor);
+//        report.setVendor(vendor);
         return report;
     }
 

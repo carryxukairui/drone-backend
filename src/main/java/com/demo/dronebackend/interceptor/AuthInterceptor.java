@@ -1,6 +1,7 @@
 package com.demo.dronebackend.interceptor;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.User;
@@ -29,7 +30,14 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (!StpUtil.isLogin()) {
+        boolean isLogin = false;
+        try{
+            isLogin = StpUtil.isLogin();
+        }catch (Exception e){
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(objectMapper.writeValueAsString(Result.notLogin("未登录")));
+        }
+        if (!isLogin) {
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(objectMapper.writeValueAsString(Result.notLogin("未登录")));
             return false;

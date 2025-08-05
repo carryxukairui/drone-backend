@@ -37,11 +37,11 @@ public class ScreenController {
      *
      * @param raw 无人机原始侦测上报数据
      */
-    @PostMapping("/report/drone")
-    public Result<?> reportDrone(@RequestBody JsonNode raw) {
-        DroneReport report = reportVendor.DroneWithVendor(raw, "default");
-        return alarmService.handleDroneReport(report);
-    }
+//    @PostMapping("sys/portable/drone/report")
+//    public Result<?> reportDrone(@RequestBody JsonNode raw) {
+//        DroneReport report = reportVendor.DroneWithVendor(raw, "default");
+//        return alarmService.handleDroneReport(report);
+//    }
 
     /**
      * 1.进入大屏时调用，实时告警界面获取历史告警信息
@@ -92,7 +92,7 @@ public class ScreenController {
     @PostMapping("/report")
     public Map<String, Object> reportStatus(@RequestBody JsonNode raw) {
         DeviceReport report = reportVendor.DeviceWithVendor(raw, "default");
-        System.out.println(report);
+
         return deviceService.websocketDevice(report);
     }
 

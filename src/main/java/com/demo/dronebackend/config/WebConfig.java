@@ -33,6 +33,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/login-pwd",
                         "/screen/**",
                         "/user/logout",
+                        "/sys/portable/status/report",
+                        "/sys/portable/drone/report",
                         "/ws/**");
     }
     @Bean

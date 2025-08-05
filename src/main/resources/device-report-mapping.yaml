@@ -9,3 +9,10 @@
 
 # 默认配置，与DroneReport一致，无需映射
 default:
+  droneUUID: drone_uuid,
+  intrusionStartTime: intrusion_start_time,
+  detectType: detect_type,
+  lastingTime: lasting_time,
+  horizontalHeadingAngle: horizontal_heading_angle,
+  verticalHeadingAngle: vertical_heading_angle,
+  stationId: station_id

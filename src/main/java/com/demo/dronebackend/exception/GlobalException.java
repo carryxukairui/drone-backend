@@ -1,5 +1,6 @@
 package com.demo.dronebackend.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.SaTokenException;
 import com.demo.dronebackend.util.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -26,5 +27,10 @@ public class GlobalException {
         log.warn("业务异常 | 错误码: {} | 原因: {}", e.getCode(), e.getMessage());
 
         return Result.error(e.getMessage());
+    }
+    @ExceptionHandler(NotLoginException.class)
+    public Result<?> handleNotLoginException(NotLoginException e) {
+        log.warn("未登录异常 | 错误码: {} | 错误信息: {}", e.getCode(), e.getMessage());
+        return  Result.notLogin(e.getMessage());
     }
 }
