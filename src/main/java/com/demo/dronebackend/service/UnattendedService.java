@@ -49,6 +49,7 @@ public class UnattendedService {
     private static final int BAND_1_2GHZ = 9;
     private static final int BAND_1_9GHZ = 16;
     private static final int BAND_2_7GHZ = 24;
+    private static final int BAND_5_2GHZ = 52;
     private static final int BAND_5_8GHZ = 58;
 
     public void onTdoaAlarm(Alarm alarm, User u) {
@@ -287,6 +288,7 @@ public class UnattendedService {
         int onoff09 = 2;
         int onoff16 = 2;
         int onoff24 = 2;
+        int onoff52 = 2;
         int onoff58 = 2;
 
         // 再对目标频段做开/关设置
@@ -303,13 +305,14 @@ public class UnattendedService {
             case 9 -> onoff09 = mode;
             case 16 -> onoff16 = mode;
             case 24 -> onoff24 = mode;
+            case 52 -> onoff52 = mode;
             case 58 -> onoff58 = mode;
             default -> {
                 // 非法频段，可以记录日志或抛异常
                 log.warn("未知频段 {}，保持所有频段原状态", band);
             }
         }
-        DeviceCommand command = new DeviceCommand(deviceId, onoff09, onoff16, onoff24, onoff58);
+        DeviceCommand command = new DeviceCommand(deviceId, onoff09, onoff16, onoff24,onoff52, onoff58);
         try {
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -346,9 +349,10 @@ public class UnattendedService {
             return BAND_1_9GHZ;
         } else if (frequency < 2.7) {  // 2.7GHz
             return BAND_2_7GHZ;
-        } else {
-            return BAND_5_8GHZ;  // 5.8GHz
-        }
+        } else  if(frequency < 5.2){
+            return BAND_5_2GHZ;
+        }else
+            return BAND_5_8GHZ;
     }
 
     private double distance(double lat1, double lon1, double lat2, double lon2) {

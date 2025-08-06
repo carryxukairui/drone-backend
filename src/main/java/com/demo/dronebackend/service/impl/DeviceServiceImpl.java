@@ -247,6 +247,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dr.setG09Onoff(paramSettings.getG09OnOff());
         dr.setG16Onoff(paramSettings.getG16OnOff());
         dr.setG24Onoff(paramSettings.getG24OnOff());
+        dr.setG52Onoff(paramSettings.getG52OnOff());
         dr.setG58Onoff(paramSettings.getG58OnOff());
         dr.setDuration(paramSettings.getDuration());
         disposalRecordMapper.insert(dr);
@@ -310,7 +311,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setUnattended(r.getG09Onoff()); // 或者根据业务设定
             // 拼接 switch 状态
             dto.setSwitchStatus(r.getG09Onoff() == 1, r.getG16Onoff() == 1,
-                    r.getG24Onoff() == 1, r.getG58Onoff() == 1);
+                    r.getG24Onoff() == 1,r.getG52Onoff() == 1, r.getG58Onoff() == 1);
             return dto;
         }).toList();
         MyPage<DisposalRecordDto> resultPage = new MyPage<>(

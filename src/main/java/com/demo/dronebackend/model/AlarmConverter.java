@@ -47,7 +47,7 @@ public class AlarmConverter {
         //TODO:业务逻辑修改
         List<Map<String,Double>> trajectory = new ArrayList<>();
         Map<String,Double> point = new HashMap<>();
-        point.put("lon",report.getLongitude());
+        point.put("lng",report.getLongitude());
         point.put("lat",report.getLatitude());
         trajectory.add(point);
         alarm.setTrajectory(trajectory);

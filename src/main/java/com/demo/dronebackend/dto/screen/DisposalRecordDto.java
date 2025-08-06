@@ -13,8 +13,8 @@ public class DisposalRecordDto {
     private Integer unattended;   // 无人值守状态：0/1
     private SwitchStatusDto switchStatus;  // 开关状态描述
 
-    public void setSwitchStatus(boolean g09Onoff, boolean g16Onoff, boolean g24Onoff, boolean g58Onoff) {
-        this.switchStatus = new SwitchStatusDto(g09Onoff, g16Onoff, g24Onoff, g58Onoff);
+    public void setSwitchStatus(boolean g09Onoff, boolean g16Onoff, boolean g24Onoff,boolean g52Onoff, boolean g58Onoff) {
+        this.switchStatus = new SwitchStatusDto(g09Onoff, g16Onoff, g24Onoff,g52Onoff,g58Onoff);
     }
 }
 @Data
@@ -23,5 +23,6 @@ public class DisposalRecordDto {
     private boolean g09;  // 0.9G
     private boolean g16;  // 1.6G
     private boolean g24;  // 2.4G
+    private boolean g52;
     private boolean g58;  // 5.8G
 }
