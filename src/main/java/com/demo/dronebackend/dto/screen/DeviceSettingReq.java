@@ -16,5 +16,7 @@ public class DeviceSettingReq {
     @Min(0) @Max(1)
     private Integer g24OnOff;
     @Min(0) @Max(1)
+    private Integer g52OnOff;
+    @Min(0) @Max(1)
     private Integer g58OnOff;
 }

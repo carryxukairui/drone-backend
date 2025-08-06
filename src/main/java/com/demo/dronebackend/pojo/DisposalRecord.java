@@ -29,5 +29,7 @@ public class DisposalRecord {
 
     private Integer g24Onoff;
 
+    private Integer g52Onoff;
+
     private Integer g58Onoff;
 }

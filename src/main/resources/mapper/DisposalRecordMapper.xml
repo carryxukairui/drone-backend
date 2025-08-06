@@ -12,12 +12,13 @@
             <result property="g09Onoff" column="g09_onoff" jdbcType="TINYINT"/>
             <result property="g16Onoff" column="g16_onoff" jdbcType="TINYINT"/>
             <result property="g24Onoff" column="g24_onoff" jdbcType="TINYINT"/>
+             <result property="g52Onoff" column="g52_onoff" jdbcType="TINYINT"/>
             <result property="g58Onoff" column="g58_onoff" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,time,duration,
         device_id,g09_onoff,g16_onoff,
-        g24_onoff,g58_onoff
+        g24_onoff,g52_onoff,g58_onoff
     </sql>
 </mapper>
