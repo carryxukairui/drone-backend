@@ -17,6 +17,7 @@ import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.model.AlarmPushBuffer;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
@@ -41,6 +42,7 @@ import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
@@ -68,27 +70,30 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
+    // 缓存 key: userId_droneSn
+    private final ConcurrentHashMap<String, AlarmPushBuffer> alarmPushMap = new ConcurrentHashMap<>();
+    // 延迟任务线程池
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
+    private final int PUSH_THRESHOLD = 5; // 告警次数达到5次立即推送
+    private final long PUSH_DELAY_MS = 1500; // 最长延迟 1.5 秒推送
+
     @Override
-    public Result<?> handleDroneReport(DroneReport report) {
+    public void handleDroneReport(DroneReport report) {
         Alarm alarm = AlarmConverter.fromReport(report);
         this.save(alarm);
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
         if (userId == null) {
-            log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getId());
-            return Result.success("无可推送用户");
+            log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getScanid());
+            return;
         }
-        // 根据用户id获取最新告警集合
-        MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
-        // 推送到设备绑定用户
-        String topic = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
-        webSocketService.sendAlarmListToUser(topic, myPage);
 
+        // TODO:判断是否是无人值守模式
         User user = userMapper.selectById(userId);
-        //TODO:判断是否是无人值守模式
         if (user != null && user.getUnattended() == 1) {
             unattendedService.onTdoaAlarm(alarm, user);
-            return Result.success("推送成功");
+            return;
         }
+
         // 判断该告警是否在处于反制状态的设备的反制区域内
         String deviceId = deviceDisposalManager.isAlarmInDisposingArea(alarm);
         if (deviceId != null) {
@@ -100,8 +105,43 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                     String.format("无人机%s已进入设备反制区域 | 告警ID:%d | 设备ID:%s",
                             alarm.getDroneSn(), alarm.getId(), deviceId)
             );
+            return;
         }
-        return Result.success("推送成功");
+
+        // 执行推送流程
+        String droneSn = alarm.getDroneSn();
+        String key = userId + "_" + droneSn;
+        AlarmPushBuffer buffer = alarmPushMap.computeIfAbsent(key, k -> {
+            AlarmPushBuffer b = new AlarmPushBuffer();
+            b.setUserId(userId);
+            b.setDroneSn(droneSn);
+            // 启动延迟推送任务
+            ScheduledFuture<?> future = scheduler.schedule(() -> {
+                pushBufferedAlarm(userId, droneSn);
+            }, PUSH_DELAY_MS, TimeUnit.MILLISECONDS);
+            b.setFuture(future);
+            return b;
+        });
+        int newCount = buffer.incrCount();
+        // 达到推送阈值，提前推送
+        if (newCount >= PUSH_THRESHOLD) {
+            ScheduledFuture<?> future = buffer.getFuture();
+            if (future != null && !future.isDone()) {
+                future.cancel(false);
+            }
+            pushBufferedAlarm(userId, droneSn);
+        }
+    }
+
+    private void pushBufferedAlarm(Long userId, String droneSn) {
+        String key = userId + "_" + droneSn;
+        AlarmPushBuffer buffer = alarmPushMap.remove(key);
+        if (buffer == null) return;
+        // 根据用户id获取最新告警集合
+        MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
+        String topic = SystemConstants.ALARM_WEBSOCKET_TOPIC + ":" + userId;
+        webSocketService.sendAlarmListToUser(topic, myPage);
+        log.info("推送完成：用户 {}, 无人机 {}, 缓存告警数 {}", userId, droneSn, buffer.getCount());
     }
 
     @Override

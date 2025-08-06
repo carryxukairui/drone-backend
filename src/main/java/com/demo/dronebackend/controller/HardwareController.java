@@ -95,15 +95,9 @@ public class HardwareController {
                     }
 
                     // 调用服务处理每个 drone 报告
-                    Result<?> result = alarmService.handleDroneReport(report);
-
-                    // 如果有任何一个处理失败，可以返回错误
-                    if (result.getCode() != 200) {
-                        return result;
-                    }
+                    alarmService.handleDroneReport(report);
                 }
             }
-
             return Result.success("处理成功");
         } catch (Exception e) {
             return Result.error("请求体解析失败: " + e.getMessage());

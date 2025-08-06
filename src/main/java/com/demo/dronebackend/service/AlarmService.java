@@ -20,7 +20,7 @@ public interface AlarmService extends IService<Alarm> {
     /**
      * 硬件请求处理
      */
-    Result<?> handleDroneReport(DroneReport report);
+    void handleDroneReport(DroneReport report);
 
     /**
      * 驾驶舱-实时告警
