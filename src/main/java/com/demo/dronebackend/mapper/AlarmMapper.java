@@ -200,12 +200,15 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
 
 
     @Select("""
-                SELECT SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand, COUNT(*) AS sortie_count
-                FROM alarm a
-                INNER JOIN device d ON a.scanID = d.id
-                WHERE d.device_user_id = #{userId}
-                  AND a.intrusion_start_time >= CURDATE()
-                  AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
+                SELECT brand, COUNT(*) AS sortie_count
+                FROM (
+                    SELECT DISTINCT a.drone_sn, SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand
+                    FROM alarm a
+                    INNER JOIN device d ON a.scanID = d.id
+                    WHERE d.device_user_id = #{userId}
+                      AND a.intrusion_start_time >= CURDATE()
+                      AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
+                ) AS distinct_alarms
                 GROUP BY brand
             """)
     List<Map<String, Object>> countFlightByBrand(@Param("userId") Long userId);
