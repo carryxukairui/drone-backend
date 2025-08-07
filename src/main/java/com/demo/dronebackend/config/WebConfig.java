@@ -35,6 +35,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/logout",
                         "/sys/portable/status/report",
                         "/sys/portable/drone/report",
+                        "/admin/devices/publish",
                         "/ws/**");
     }
     @Bean

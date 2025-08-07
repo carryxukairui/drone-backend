@@ -24,6 +24,7 @@ public class HardwareController {
     private final AlarmService alarmService;
     private final DeviceService deviceService;
     private final ReportVendor reportVendor;
+
     @PostMapping("sys/portable/drone/report")
     public Result<?> reportDrone(HttpServletRequest request) {
         try {
@@ -86,7 +87,7 @@ public class HardwareController {
                     // 处理 scanID
                     if (droneNode.has("scanID")) {
                         JsonNode node = droneNode.get("scanID");
-                        for(JsonNode n: node){
+                        for (JsonNode n : node) {
                             String id = getStringValue(n, "id");
                             report.setId(id);
                         }
@@ -131,7 +132,6 @@ public class HardwareController {
 //
 //        return deviceService.websocketDevice(report);
 //    }
-
     @PostMapping("admin/devices/sub")
     public Result<?> reportStatus(HttpServletRequest request) {
         try {
@@ -170,19 +170,19 @@ public class HardwareController {
                     report.setId(getStringValue(scannerNode, "id"));
                     report.setIp(getStringValue(scannerNode, "ip"));
                     report.setLinkState(getIntValue(scannerNode, "link_state"));
-                    if (getStringValue(scannerNode, "lat").isEmpty()){
-                        report.setLat(30.735);
-                    }else {
+                    if (getStringValue(scannerNode, "lat").isEmpty()) {
+                        report.setLat(30.5278);
+                    } else {
                         report.setLat(getDoubleValue(scannerNode, "lat"));
                     }
-                    if (getStringValue(scannerNode, "lng").isEmpty()){
-                        report.setLng(120.826);
-                    }else {
+                    if (getStringValue(scannerNode, "lng").isEmpty()) {
+                        report.setLng(120.72);
+                    } else {
                         report.setLng(getDoubleValue(scannerNode, "lng"));
                     }
 
 
-
+                    System.out.println(report);
                     // 调用服务处理每个设备报告
                     Map<String, Object> result = deviceService.websocketDevice(report);
 
@@ -198,8 +198,6 @@ public class HardwareController {
             return Result.error("请求体解析失败: " + e.getMessage());
         }
     }
-
-
 
 
 }

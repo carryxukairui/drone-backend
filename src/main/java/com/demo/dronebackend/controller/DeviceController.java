@@ -1,6 +1,7 @@
 package com.demo.dronebackend.controller;
 
 
+import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.device.DeviceCommand;
 import com.demo.dronebackend.dto.device.DeviceQuery;
 import com.demo.dronebackend.dto.device.DeviceReq;
@@ -10,12 +11,15 @@ import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.service.MqttService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+
+import static com.demo.dronebackend.constant.SystemLogConstants.DEVICE_DISPOSAL_EVENT;
 
 @RestController
 @RequestMapping("admin/devices")
@@ -82,7 +86,15 @@ public class DeviceController {
         //把command转化为json字符串
         ObjectMapper mapper = new ObjectMapper();
         String message = mapper.writeValueAsString(command);
-        mqttService.publish(topic, message);
+        try {
+            String payload = new ObjectMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .writeValueAsString(command);
+            String topic = SystemConstants.TOPIC;
+            mqttService.publish(topic, payload);
+        } catch (Exception e) {
+            return "更新失败";
+        }
         return "Published to topic: " + topic+" : "+message;
     }
 

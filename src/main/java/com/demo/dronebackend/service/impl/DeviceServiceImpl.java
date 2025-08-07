@@ -31,8 +31,11 @@ import com.demo.dronebackend.model.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -42,8 +45,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
 
 import static com.demo.dronebackend.constant.SystemConstants.DEVICES_WEBSOCKET_TOPIC;
@@ -70,10 +76,17 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final UnattendedService unattendedService;
     private final SystemLogMapper systemLogMapper;
     private final DeviceDisposalManager deviceDisposalManager;
-    private static final String topic = "device/command/startJam";
+    private final TaskScheduler taskScheduler;
+
     private static final DateTimeFormatter DTF =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // 存储每个设备对应的“离线检测”定时任务
+    private Map<String, ScheduledFuture<?>> offlineTasks;
 
+    @PostConstruct
+    public void init() {
+        offlineTasks = new ConcurrentHashMap<>();
+    }
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -166,6 +179,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
 
         String userId = String.valueOf(dev.getDeviceUserId());
+        String deviceId = dev.getId();
 
         dev.setLongitude(report.getLng());
         dev.setLatitude(report.getLat());
@@ -174,23 +188,24 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dev.setStationId(report.getStationId());
         deviceMapper.updateById(dev);
 
-        DeviceDTO dto = new DeviceDTO();
-        dto.setDeviceId(dev.getId());
-        dto.setDeviceName(dev.getDeviceName());
-        dto.setCoverRange(dev.getCoverRange());
-        dto.setPower(dev.getPower());
-        dto.setLinkStatus(dev.getLinkStatus());
-        dto.setDeviceType(dev.getDeviceType());
-        dto.setLongitude(dev.getLongitude());
-        dto.setLatitude(dev.getLatitude());
-        String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
-        dto.setLocation(location);
+        DeviceDTO dto = buildDtoFromDevice( dev);
 
 
         String deviceTopic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
         webSocketService.sendDeviceListToUser("device",deviceTopic, dto);
 
 
+        // —— 2. 维护“离线定时器” ——
+        // 如果之前已有一个未执行的“离线任务”，先取消它
+        ScheduledFuture<?> prev = offlineTasks.get(deviceId);
+        if (prev != null && !prev.isDone()) {
+            prev.cancel(false);
+        }
+        ScheduledFuture<?> future = taskScheduler.schedule(
+                () -> markOffline(deviceId,deviceTopic),
+                new Date(System.currentTimeMillis() + 60 * 1000)
+        );
+        offlineTasks.put(deviceId, future);
         //无人值守逻辑
         User user = userMapper.selectById(userId);
 
@@ -222,6 +237,38 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
         return Map.of("code", 200, "msg", "Success");
     }
+
+
+
+    //设备离线
+    private void markOffline(String deviceId,String deviceTopic){
+        Device dev = deviceMapper.selectById(deviceId);
+        if (dev !=null){
+            dev.setLinkStatus(0);
+            deviceMapper.updateById(dev);
+
+            DeviceDTO dto = buildDtoFromDevice(dev);
+            webSocketService.sendDeviceListToUser("device",deviceTopic, dto);
+        }
+        offlineTasks.remove(deviceId);
+    }
+
+    private DeviceDTO buildDtoFromDevice(Device dev) {
+        DeviceDTO dto = new DeviceDTO();
+        dto.setDeviceId(dev.getId());
+        dto.setDeviceName(dev.getDeviceName());
+        dto.setCoverRange(dev.getCoverRange());
+        dto.setPower(dev.getPower());
+        dto.setLinkStatus(dev.getLinkStatus());
+        dto.setDeviceType(dev.getDeviceType());
+        dto.setLongitude(dev.getLongitude());
+        dto.setLatitude(dev.getLatitude());
+        String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
+        dto.setLocation(location);
+        dto.setNowTime(new Date());
+        return dto;
+    }
+
 
     @Override
     public Result<?> getDeviceDetail(String deviceId) {

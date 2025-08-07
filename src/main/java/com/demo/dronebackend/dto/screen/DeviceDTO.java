@@ -2,6 +2,8 @@ package com.demo.dronebackend.dto.screen;
 
 import lombok.Data;
 
+import java.util.Date;
+
 @Data
 public class DeviceDTO{
     private String deviceId;
@@ -13,4 +15,5 @@ public class DeviceDTO{
     private Double latitude;
     private String location;
     private String deviceType;
+    private Date nowTime;
 }
