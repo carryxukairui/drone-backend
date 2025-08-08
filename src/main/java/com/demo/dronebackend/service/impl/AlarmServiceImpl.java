@@ -77,14 +77,16 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public void handleDroneReport(AlarmConvertible report) {
         Alarm alarm = report.toAlarm();
         this.save(alarm);
+        User user = userMapper.selectById(StpUtil.getLoginIdAsLong());
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
-        if (userId == null) {
+        // 超级管理员直接推送
+        if (!user.getPermission().equals(PermissionType.admin.getDesc()) && userId == null) {
             log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getScanid());
             return;
         }
 
         // TODO:判断是否是无人值守模式
-        User user = userMapper.selectById(userId);
+        user = userMapper.selectById(userId);
         if (user != null && user.getUnattended() == 1) {
             unattendedService.onTdoaAlarm(alarm, user);
             return;
@@ -142,8 +144,11 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> realtimeAlarms(RealtimeAlarmReq req) {
-        if (req != null){
+        if (req != null) {
             this.req=req; // 第一次展示，同步展示条件参数
+            if (StrUtil.isBlank(req.getType())){ // 防止前端传来空字符串
+                req.setType(null);
+            }
         }
         Long userId = StpUtil.getLoginIdAsLong();
         MyPage<RealTimeAlarmDTO> myPage = getRealtimeAlarms(userId);
@@ -157,6 +162,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
      * @return 自定义分页数据
      */
     private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
+        System.out.println(req);
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
@@ -185,17 +191,20 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         ? (Timestamp) intrusionTimeObj
                         : Timestamp.valueOf((LocalDateTime) intrusionTimeObj));
             }
-            double lastLongitude = ((Number) row.get("last_longitude")).doubleValue();
-            double lastLatitude = ((Number) row.get("last_latitude")).doubleValue();
-            // 经纬度转换
-            String location = tiandituService.reverseGeocode(lastLongitude, lastLatitude);
-            dto.setLocation(location);
+            dto.setLongitude(((Number) row.get("last_longitude")).doubleValue());
+            dto.setLatitude(((Number) row.get("last_latitude")).doubleValue());
             return dto;
         }).toList();
         // 分页
         int fromIndex = (page - 1) * size;
         int toIndex = Math.min(fromIndex + size, allDtos.size());
         List<RealTimeAlarmDTO> pagedList = fromIndex >= allDtos.size() ? Collections.emptyList() : allDtos.subList(fromIndex, toIndex);
+
+        // 分页后再调用天地图解析，减少不必要的解析
+        pagedList.forEach(dto -> {
+            String location = tiandituService.reverseGeocode(dto.getLongitude(), dto.getLatitude());
+            dto.setLocation(location);
+        });
         MyPage<RealTimeAlarmDTO> myPage = new MyPage<>();
         myPage.setCurrent(page);
         myPage.setSize(size);
@@ -265,7 +274,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         long alarmId = Long.parseLong(id);
         Alarm alarm = alarmMapper.selectById(alarmId);
         long userId = StpUtil.getLoginIdAsLong();
-        //todo: 拦截器获取user
+        // todo: 拦截器获取user
         User user = userMapper.selectById(userId);
         return unattendedService.disposeAlarmManually(alarm, user);
     }

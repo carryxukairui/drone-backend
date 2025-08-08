@@ -1,5 +1,6 @@
 package com.demo.dronebackend.factory;
 
+import cn.hutool.core.util.StrUtil;
 import com.demo.dronebackend.dto.hardware.DefaultDroneReport;
 import com.demo.dronebackend.model.AlarmConvertible;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -34,8 +37,24 @@ public class DefaultDroneParser implements DroneReportParser {
             if (report.getScanID() != null && !report.getScanID().isEmpty()) {
                 report.setId(report.getScanID().get(0).getId());
             }
+            fillDefaults(report);
             list.add(report);
         }
         return list;
+    }
+
+    // 填充默认值
+    private void fillDefaults(DefaultDroneReport report) {
+        if (report.getLongitude() == null) report.setLongitude(0.0);
+        if (report.getLatitude() == null) report.setLatitude(0.0);
+        if (report.getHeight() == null) report.setHeight(0.0);
+        if (report.getLasting_time() == null) report.setLasting_time(0.0);
+        if (report.getScanID() == null) report.setScanID(new ArrayList<>());
+        if (StrUtil.isBlank(report.getStation_id())) report.setStation_id("UNKNOWN");
+        if (StrUtil.isBlank(report.getId())) report.setId("UNKNOWN");
+        if (StrUtil.isBlank(report.getDrone_uuid())) report.setDrone_uuid("UNKNOWN");
+        if (StrUtil.isBlank(report.getIntrusion_start_time())) {
+            report.setIntrusion_start_time(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+        }
     }
 }

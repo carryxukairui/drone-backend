@@ -1,7 +1,6 @@
 package com.demo.dronebackend.dto.hardware;
 
 
-import cn.hutool.core.util.StrUtil;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.AlarmConvertible;
 import com.demo.dronebackend.pojo.Alarm;
@@ -62,14 +61,13 @@ public class DefaultDroneReport implements AlarmConvertible {
     @Override
     public Alarm toAlarm() {
         // String intrusion_start_time ---> Date intrusionStartTime
-        Date intrusionStartTime = new Date();
-        if (StrUtil.isNotBlank(this.intrusion_start_time)) {
-            try {
-                intrusionStartTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(this.intrusion_start_time);
-            } catch (ParseException e) {
-                throw new BusinessException(e.getMessage());
-            }
+        Date intrusionStartTime = null;
+        try {
+            intrusionStartTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(this.intrusion_start_time);
+        } catch (ParseException e) {
+            throw new BusinessException(e.getMessage());
         }
+
         Alarm alarm = new Alarm();
         alarm.setDroneModel(this.model);
         alarm.setLastLongitude(this.longitude);
