@@ -10,14 +10,13 @@ import com.demo.dronebackend.constant.SystemConstants;
 import com.demo.dronebackend.dto.alarm.AlarmDTO;
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
-import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.screen.*;
 import com.demo.dronebackend.enums.PermissionType;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.UserMapper;
-import com.demo.dronebackend.model.AlarmPushBuffer;
+import com.demo.dronebackend.model.*;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
@@ -26,9 +25,6 @@ import com.demo.dronebackend.pojo.User;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.TiandituService;
 import com.demo.dronebackend.service.UnattendedService;
-import com.demo.dronebackend.model.AlarmConverter;
-import com.demo.dronebackend.model.CurrentUserContext;
-import com.demo.dronebackend.model.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -78,8 +74,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final long PUSH_DELAY_MS = 1500; // 最长延迟 1.5 秒推送
 
     @Override
-    public void handleDroneReport(DroneReport report) {
-        Alarm alarm = AlarmConverter.fromReport(report);
+    public void handleDroneReport(AlarmConvertible report) {
+        Alarm alarm = report.toAlarm();
         this.save(alarm);
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
         if (userId == null) {
