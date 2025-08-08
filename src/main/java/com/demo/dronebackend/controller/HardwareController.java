@@ -42,7 +42,7 @@ public class HardwareController {
         }
     }
 
-    
+
 
     // 辅助方法
     private String getStringValue(JsonNode node, String fieldName) {
@@ -72,7 +72,6 @@ public class HardwareController {
 //
 //        return deviceService.websocketDevice(report);
 //    }
-
     @PostMapping("admin/devices/sub")
     public Result<?> reportStatus(HttpServletRequest request) {
         try {
@@ -111,14 +110,14 @@ public class HardwareController {
                     report.setId(getStringValue(scannerNode, "id"));
                     report.setIp(getStringValue(scannerNode, "ip"));
                     report.setLinkState(getIntValue(scannerNode, "link_state"));
-                    if (getStringValue(scannerNode, "lat").isEmpty()){
-                        report.setLat(30.735);
-                    }else {
+                    if (getStringValue(scannerNode, "lat").isEmpty()) {
+                        report.setLat(30.5278);
+                    } else {
                         report.setLat(getDoubleValue(scannerNode, "lat"));
                     }
-                    if (getStringValue(scannerNode, "lng").isEmpty()){
-                        report.setLng(120.826);
-                    }else {
+                    if (getStringValue(scannerNode, "lng").isEmpty()) {
+                        report.setLng(120.72);
+                    } else {
                         report.setLng(getDoubleValue(scannerNode, "lng"));
                     }
 
@@ -139,6 +138,8 @@ public class HardwareController {
             return Result.error("请求体解析失败: " + e.getMessage());
         }
     }
+
+
 
 
 }
