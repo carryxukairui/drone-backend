@@ -162,7 +162,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
      * @return 自定义分页数据
      */
     private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
-        System.out.println(req);
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();

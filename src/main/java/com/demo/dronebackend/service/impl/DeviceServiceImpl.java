@@ -17,16 +17,14 @@ import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
 import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
+import com.demo.dronebackend.model.GeoEntry;
+import com.demo.dronebackend.service.*;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Device;
 import com.demo.dronebackend.pojo.DisposalRecord;
 import com.demo.dronebackend.pojo.SystemLog;
 import com.demo.dronebackend.pojo.User;
-import com.demo.dronebackend.service.DeviceService;
-import com.demo.dronebackend.service.MqttService;
-import com.demo.dronebackend.service.TiandituService;
-import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.model.DeviceDisposalManager;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +32,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -44,10 +41,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
@@ -71,13 +65,12 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final DisposalRecordMapper disposalRecordMapper;
     private final UserMapper userMapper;
     private final WebSocketService webSocketService;
-    private final TiandituService tiandituService;
     private final MqttService mqttService;
     private final UnattendedService unattendedService;
     private final SystemLogMapper systemLogMapper;
     private final DeviceDisposalManager deviceDisposalManager;
     private final TaskScheduler taskScheduler;
-
+    private final GeoCacheServiceImpl geoCacheService;
     private static final DateTimeFormatter DTF =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // 存储每个设备对应的“离线检测”定时任务
@@ -87,6 +80,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     public void init() {
         offlineTasks = new ConcurrentHashMap<>();
     }
+
     @Override
     public Result<?> addDevice(DeviceReq req) {
         Long reqUserid = Long.valueOf(req.getDeviceUserId());
@@ -188,11 +182,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dev.setStationId(report.getStationId());
         deviceMapper.updateById(dev);
 
-        DeviceDTO dto = buildDtoFromDevice( dev);
+        DeviceDTO dto = buildDtoFromDevice(dev);
 
 
         String deviceTopic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
-        webSocketService.sendDeviceListToUser("device",deviceTopic, dto);
+        webSocketService.sendDeviceListToUser("device", deviceTopic, dto);
 
 
         // —— 2. 维护“离线定时器” ——
@@ -202,7 +196,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             prev.cancel(false);
         }
         ScheduledFuture<?> future = taskScheduler.schedule(
-                () -> markOffline(deviceId,deviceTopic),
+                () -> markOffline(deviceId, deviceTopic),
                 new Date(System.currentTimeMillis() + 60 * 1000)
         );
         offlineTasks.put(deviceId, future);
@@ -239,16 +233,15 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     }
 
 
-
     //设备离线
-    private void markOffline(String deviceId,String deviceTopic){
+    private void markOffline(String deviceId, String deviceTopic) {
         Device dev = deviceMapper.selectById(deviceId);
-        if (dev !=null){
+        if (dev != null) {
             dev.setLinkStatus(0);
             deviceMapper.updateById(dev);
 
             DeviceDTO dto = buildDtoFromDevice(dev);
-            webSocketService.sendDeviceListToUser("device",deviceTopic, dto);
+            webSocketService.sendDeviceListToUser("device", deviceTopic, dto);
         }
         offlineTasks.remove(deviceId);
     }
@@ -263,8 +256,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dto.setDeviceType(dev.getDeviceType());
         dto.setLongitude(dev.getLongitude());
         dto.setLatitude(dev.getLatitude());
-        String location = tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
-        dto.setLocation(location);
+        //tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
+        String location = "经度:" + dev.getLongitude() + " | 纬度:" + dev.getLatitude();
+        dto = reverseLocation(dev, dto, location);
+
         dto.setNowTime(new Date());
         return dto;
     }
@@ -358,7 +353,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setUnattended(r.getG09Onoff()); // 或者根据业务设定
             // 拼接 switch 状态
             dto.setSwitchStatus(r.getG09Onoff() == 1, r.getG16Onoff() == 1,
-                    r.getG24Onoff() == 1,r.getG52Onoff() == 1, r.getG58Onoff() == 1);
+                    r.getG24Onoff() == 1, r.getG52Onoff() == 1, r.getG58Onoff() == 1);
             return dto;
         }).toList();
         MyPage<DisposalRecordDto> resultPage = new MyPage<>(
@@ -390,18 +385,41 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setLatitude(d.getLatitude());
             dto.setLongitude(d.getLongitude());
             String location = "位置";
-            if (d.getLatitude() == null || d.getLongitude() == null){
-                dto.setLocation(location);
-            }else {
-                 location = tiandituService.reverseGeocode(d.getLongitude(), d.getLatitude());
 
-            }
-            dto.setLocation(location);
+            dto = reverseLocation(d,dto,location);
+
             return dto;
         }).collect(Collectors.toList());
 
 
         return Result.success(dtos);
+    }
+
+    private DeviceDTO reverseLocation(Device d, DeviceDTO dto, String location) {
+        // 如果没有经纬度，保留默认提示
+        if (d.getLatitude() == null || d.getLongitude() == null) {
+            dto.setLocation(location);
+            return dto;
+        }
+
+        String deviceKey = d.getId();
+
+
+        // 先尝试从缓存取地址（非阻塞读取）
+        Optional<GeoEntry> maybe = geoCacheService.getEntry(deviceKey);
+        if (maybe.isPresent() && maybe.get().getAddress() != null) {
+            // 缓存命中并且已经解析出地址
+            dto.setLocation(maybe.get().getAddress());
+        } else {
+            // 缓存未命中或地址尚未解析：显示经纬度占位，同时异步触发解析（updateLocation 要是幂等/去重的）
+            location = "经度：" + d.getLongitude() + "  纬度：" + d.getLatitude();
+            dto.setLocation(location);
+
+            // 异步触发解析（不会阻塞当前请求）
+            geoCacheService.updateLocation(deviceKey, d.getLongitude(), d.getLatitude());
+        }
+        return dto;
+
     }
 
 
