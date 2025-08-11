@@ -12,4 +12,6 @@ public class RealTimeAlarmDTO {
     private String location;
     private String type;
     private String droneSn;
+    private Double longitude;
+    private Double latitude;
 }

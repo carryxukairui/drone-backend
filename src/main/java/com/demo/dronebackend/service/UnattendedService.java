@@ -102,14 +102,9 @@ public class UnattendedService {
         if (alarm.getLastLatitude() == null || alarm.getLastLongitude() == null){
             return Result.error("告警经纬度丢失");
         }
-        // 区域判断
-//        if (!isInActionArea(alarm, user)){
-//            return Result.error("告警不在有效区域内");
-//        }
         // 查找最近的干扰设备
         Device device = findNearestJammer(alarm, user);
         if (device == null) {
-            System.out.println("null null null");
             return Result.error("未找到可用干扰设备");
         }
         // 确定干扰频段

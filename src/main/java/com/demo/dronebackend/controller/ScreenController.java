@@ -1,23 +1,18 @@
 package com.demo.dronebackend.controller;
 
 
-import com.demo.dronebackend.dto.hardware.DeviceReport;
-import com.demo.dronebackend.dto.hardware.DroneReport;
 import com.demo.dronebackend.dto.screen.DeviceSettingReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.RegionReq;
-import com.demo.dronebackend.model.ReportVendor;
 import com.demo.dronebackend.service.*;
 import com.demo.dronebackend.util.Result;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/screen")
@@ -30,18 +25,6 @@ public class ScreenController {
 
     private final RegionService regionService;
     private final UserService userService;
-    private final ReportVendor reportVendor;
-
-    /**
-     * 响应硬件发送请求
-     *
-     * @param raw 无人机原始侦测上报数据
-     */
-//    @PostMapping("sys/portable/drone/report")
-//    public Result<?> reportDrone(@RequestBody JsonNode raw) {
-//        DroneReport report = reportVendor.DroneWithVendor(raw, "default");
-//        return alarmService.handleDroneReport(report);
-//    }
 
     /**
      * 1.进入大屏时调用，实时告警界面获取历史告警信息
@@ -81,19 +64,6 @@ public class ScreenController {
     @PostMapping("/flight/history")
     public Result<?> historyList(@RequestBody FlightHistoryQuery query) {
         return alarmService.historyList(query);
-    }
-
-    /**
-     * websocket获取硬件数据
-     *
-     * @param raw
-     * @return
-     */
-    @PostMapping("/report")
-    public Map<String, Object> reportStatus(@RequestBody JsonNode raw) {
-        DeviceReport report = reportVendor.DeviceWithVendor(raw, "default");
-
-        return deviceService.websocketDevice(report);
     }
 
     /**

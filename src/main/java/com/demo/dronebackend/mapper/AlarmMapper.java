@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.*;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -26,9 +27,8 @@ import org.apache.ibatis.annotations.Select;
 public interface AlarmMapper extends BaseMapper<Alarm> {
     @Select("""
                 SELECT a.*, COALESCE(d.type, 'gray') AS d_type
-                FROM alarm a
-                INNER JOIN (
-                    SELECT a1.id
+                FROM (
+                    SELECT a1.*
                     FROM alarm a1
                     LEFT JOIN alarm a2
                         ON a1.drone_sn = a2.drone_sn
@@ -36,11 +36,15 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
                             a2.intrusion_start_time > a1.intrusion_start_time
                             OR (a2.intrusion_start_time = a1.intrusion_start_time AND a2.id > a1.id)
                         )
-                    WHERE a2.id IS NULL AND a1.is_disposed = 0
-                ) latest ON a.id = latest.id
-                INNER JOIN device dev ON a.scanID = dev.id AND dev.device_user_id = #{userId}
-                LEFT JOIN drone d ON a.drone_sn = d.drone_sn AND d.user_id = #{userId}
-                WHERE 
+                    WHERE a2.id IS NULL
+                ) a
+                INNER JOIN device dev 
+                    ON a.scanID = dev.id
+                    AND dev.device_user_id = #{userId}
+                LEFT JOIN drone d 
+                    ON a.drone_sn = d.drone_sn
+                    AND d.user_id = #{userId}
+                WHERE
                     (#{startTime} IS NULL OR a.intrusion_start_time >= #{startTime})
                     AND (#{endTime} IS NULL OR a.intrusion_start_time <= #{endTime})
                     AND (#{droneModel} IS NULL OR a.drone_model LIKE CONCAT('%', #{droneModel}, '%'))
@@ -200,18 +204,21 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
 
 
     @Select("""
-                SELECT brand, COUNT(*) AS sortie_count
-                FROM (
-                    SELECT DISTINCT a.drone_sn, SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand
-                    FROM alarm a
-                    INNER JOIN device d ON a.scanID = d.id
-                    WHERE d.device_user_id = #{userId}
-                      AND a.intrusion_start_time >= CURDATE()
-                      AND a.intrusion_start_time < CURDATE() + INTERVAL 1 DAY
-                ) AS distinct_alarms
+                SELECT 
+                    SUBSTRING_INDEX(a.drone_model, ' ', 1) AS brand,
+                    COUNT(DISTINCT a.drone_sn) AS sortie_count
+                FROM alarm a
+                INNER JOIN device d ON a.scanID = d.id
+                WHERE d.device_user_id = #{userId}
+                  AND a.intrusion_start_time >= #{startTime}
+                  AND a.intrusion_start_time < #{endTime}
                 GROUP BY brand
             """)
-    List<Map<String, Object>> countFlightByBrand(@Param("userId") Long userId);
+    List<Map<String, Object>> countFlightByBrand(
+            @Param("userId") Long userId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
 
 
     @Select("""

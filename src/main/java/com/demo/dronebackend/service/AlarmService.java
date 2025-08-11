@@ -2,10 +2,11 @@ package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.dto.alarm.AlarmQueryReq;
 import com.demo.dronebackend.dto.alarm.AlarmUpdateReq;
-import com.demo.dronebackend.dto.hardware.DroneReport;
+import com.demo.dronebackend.dto.hardware.DefaultDroneReport;
 import com.demo.dronebackend.dto.screen.RealtimeAlarmReq;
 import com.demo.dronebackend.dto.screen.FlightHistoryQuery;
 import com.demo.dronebackend.exception.BusinessException;
+import com.demo.dronebackend.model.AlarmConvertible;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -20,7 +21,7 @@ public interface AlarmService extends IService<Alarm> {
     /**
      * 硬件请求处理
      */
-    void handleDroneReport(DroneReport report);
+    void handleDroneReport(AlarmConvertible report);
 
     /**
      * 驾驶舱-实时告警
