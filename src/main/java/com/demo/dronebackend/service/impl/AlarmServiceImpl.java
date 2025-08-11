@@ -629,8 +629,33 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
     @Override
     public Result<?> getBrandCount() {
-        List<Map<String, Object>> brandCount = alarmMapper.countFlightByBrand(StpUtil.getLoginIdAsLong());
-        return Result.success(brandCount);
+        LocalDate today = LocalDate.now();
+        LocalDateTime startTime = today.atStartOfDay();
+        LocalDateTime endTime = today.plusDays(1).atStartOfDay();
+        // 获取品牌和对应起飞架次
+        List<Map<String, Object>> data = alarmMapper.countFlightByBrand(StpUtil.getLoginIdAsLong(), startTime, endTime);
+        // 计算总架次
+        long total = data.stream()
+                .mapToLong(m -> ((Number) m.get("sortie_count")).longValue())
+                .sum();
+        // 按数值计算占比
+        data.forEach(m -> {
+            long count = ((Number) m.get("sortie_count")).longValue();
+            double percentage = total == 0 ? 0 : (count * 100.0 / total);
+            m.put("percentage", percentage);
+        });
+        // 按占比降序排序
+        data.sort((m1, m2) -> {
+            double p1 = ((Number) m1.get("percentage")).doubleValue();
+            double p2 = ((Number) m2.get("percentage")).doubleValue();
+            return Double.compare(p2, p1);
+        });
+        // 格式化成字符串
+        data.forEach(m -> {
+            double percentage = ((Number) m.get("percentage")).doubleValue();
+            m.put("percentage", String.format("%.2f%%", percentage));
+        });
+        return Result.success(data);
     }
 
     @Override
@@ -643,7 +668,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             Integer count = ((Number) row.get("sortieCount")).intValue();
             countMap.put(hourStr, count);
         }
-
         // 补全 00:00 ~ 23:00 每小时
         List<Map<String, Object>> result = new ArrayList<>();
         for (int i = 0; i < 24; i++) {
