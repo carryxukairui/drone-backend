@@ -17,6 +17,7 @@ import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.*;
+import com.demo.dronebackend.service.GeoCacheServiceImpl;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
@@ -63,6 +64,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final UserMapper userMapper;
     private final UnattendedService unattendedService;
     private final DeviceDisposalManager deviceDisposalManager;
+    private final GeoCacheServiceImpl geoCacheService;
 
     private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
@@ -162,7 +164,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
      * @return 自定义分页数据
      */
     private MyPage<RealTimeAlarmDTO> getRealtimeAlarms(Long userId) {
-        System.out.println(req);
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
@@ -202,7 +203,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
         // 分页后再调用天地图解析，减少不必要的解析
         pagedList.forEach(dto -> {
-            String location = tiandituService.reverseGeocode(dto.getLongitude(), dto.getLatitude());
+            String location = reverseLocation(dto.getDroneSn(), dto.getLongitude(), dto.getLatitude());
             dto.setLocation(location);
         });
         MyPage<RealTimeAlarmDTO> myPage = new MyPage<>();
@@ -212,6 +213,22 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         myPage.setPages((long) Math.ceil((double) allDtos.size() / size));
         myPage.setRecords(pagedList);
         return myPage;
+    }
+
+    private String reverseLocation(String alarmKey, double longitude, double latitude) {
+        String location = "";
+        // 先尝试从缓存取地址（非阻塞读取）
+        Optional<GeoEntry> maybe = geoCacheService.getEntry(alarmKey);
+        if (maybe.isPresent() && maybe.get().getAddress() != null) {
+            // 缓存命中并且已经解析出地址
+            location = maybe.get().getAddress();
+        } else {
+            // 缓存未命中或地址尚未解析：显示经纬度占位，同时异步触发解析（updateLocation 要是幂等/去重的）
+            location = "经度：" + longitude + "  纬度：" + latitude;
+            // 异步触发解析（不会阻塞当前请求）
+            geoCacheService.updateLocation(alarmKey, longitude, latitude);
+        }
+        return location;
     }
 
     @Override
