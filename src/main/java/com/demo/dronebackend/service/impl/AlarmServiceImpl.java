@@ -191,8 +191,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             }
             double lastLongitude = ((Number) row.get("last_longitude")).doubleValue();
             double lastLatitude = ((Number) row.get("last_latitude")).doubleValue();
-            // 经纬度转换
-            String location = tiandituService.reverseGeocode(lastLongitude, lastLatitude);
+            // 经纬度转换 tiandituService.reverseGeocode(lastLongitude, lastLatitude);
+            String location = "经度："+lastLongitude+" | 纬度："+lastLatitude;
             dto.setLocation(location);
             return dto;
         }).toList();
@@ -332,7 +332,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
 
         Page<Alarm> alarmPage = alarmMapper.selectPage(page, qw);
         List<AlarmDTO> dtoList = alarmPage.getRecords().stream().map(a -> {
-            String location = tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
+            //tiandituService.reverseGeocode(a.getLastLongitude(), a.getLastLatitude());
+            String location = "经度:"+a.getLastLongitude()+"纬度:"+a.getLastLatitude();
 
             AlarmDTO dto = new AlarmDTO();
             dto.setId(a.getId());

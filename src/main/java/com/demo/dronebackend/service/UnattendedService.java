@@ -214,7 +214,8 @@ public class UnattendedService {
                             alarm.getFrequency(),
                             alarm.getLastLatitude(),
                             alarm.getLastLongitude(),
-                            tiandituService.reverseGeocode(alarm.getLastLongitude(), alarm.getLastLatitude())
+                            "经度：" + alarm.getLastLongitude() + " | 纬度：" + alarm.getLastLatitude()
+                            //tiandituService.reverseGeocode(alarm.getLastLongitude(), alarm.getLastLatitude())
                     )
             );
             return true;
