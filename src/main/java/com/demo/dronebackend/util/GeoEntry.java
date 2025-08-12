@@ -1,4 +1,4 @@
-package com.demo.dronebackend.model;
+package com.demo.dronebackend.util;
 
 import lombok.Data;
 

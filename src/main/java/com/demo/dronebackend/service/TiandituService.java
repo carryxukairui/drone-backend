@@ -1,12 +1,11 @@
 package com.demo.dronebackend.service;
 
 import com.demo.dronebackend.config.TiandituProperties;
-import com.demo.dronebackend.model.GeocodeLocation;
+import com.demo.dronebackend.util.GeocodeLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
