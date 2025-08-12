@@ -17,12 +17,13 @@
             <result property="ip" column="ip" jdbcType="VARCHAR"/>
             <result property="coverRange" column="cover_range" jdbcType="FLOAT"/>
             <result property="power" column="power" jdbcType="FLOAT"/>
+        <result property="reportTime" column="report_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,device_name,device_type,
         device_user_id,device_status,station_id,
         link_status,longitude,latitude,
-        ip,cover_range,power
+        ip,cover_range,power,report_time
     </sql>
 </mapper>

@@ -1,10 +1,14 @@
 package com.demo.dronebackend.pojo;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @TableName device
@@ -35,4 +39,5 @@ public class Device {
     private Double coverRange;
 
     private Double power;
+    private Date reportTime;
 }

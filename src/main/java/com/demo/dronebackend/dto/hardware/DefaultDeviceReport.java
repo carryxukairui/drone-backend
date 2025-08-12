@@ -1,5 +1,6 @@
 package com.demo.dronebackend.dto.hardware;
 
+import cn.hutool.core.date.DateTime;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.model.DeviceConvertible;
 import com.demo.dronebackend.pojo.Device;
@@ -11,6 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Date;
 
 
 @Data
@@ -41,6 +44,7 @@ public class DefaultDeviceReport implements DeviceConvertible {
         dev.setLongitude(this.lng != null ? this.lng : 120.72);
         dev.setLatitude(this.lat != null ? this.lat : 30.527);
         dev.setIp(this.ip != null ? this.ip : "UNKNOWN");
+
         System.out.println("UNKNOWN device:"+dev);
         return dev;
     }

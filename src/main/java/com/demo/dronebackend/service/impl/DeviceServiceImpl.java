@@ -1,6 +1,7 @@
 package com.demo.dronebackend.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -188,7 +189,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (devFromReport.getIp() != null) {
             existingDevice.setIp(devFromReport.getIp());
         }
-
+        existingDevice.setReportTime(new Date());
         deviceMapper.updateById(existingDevice);
 
 
@@ -336,7 +337,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         String location = "经度:" + dev.getLongitude() + " | 纬度:" + dev.getLatitude();
         dto = reverseLocation(dev, dto, location);
 
-        dto.setNowTime(new Date());
+        dto.setReportTime(dev.getReportTime());
         return dto;
     }
 

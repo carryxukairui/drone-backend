@@ -4,11 +4,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Drone;
 import com.demo.dronebackend.service.DroneService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/drones")
+@RequestMapping("/admin/drones")
 @RequiredArgsConstructor
 public class DroneController {
     private final DroneService droneService;
@@ -26,7 +27,7 @@ public class DroneController {
         return droneService.getDroneList(page,size,droneBrand,droneModel,droneSn,type,userId);
     }
     @PostMapping
-    public Result<Drone> add(@RequestBody Drone drone) {
+    public Result<Drone> add(@Valid  @RequestBody Drone drone) {
         return droneService.addDrone(drone);
     }
     @PutMapping

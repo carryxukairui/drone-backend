@@ -15,5 +15,5 @@ public class DeviceDTO{
     private Double latitude;
     private String location;
     private String deviceType;
-    private Date nowTime;
+    private Date reportTime;
 }
