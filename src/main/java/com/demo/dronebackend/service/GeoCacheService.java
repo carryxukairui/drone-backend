@@ -1,6 +1,6 @@
 package com.demo.dronebackend.service;
 
-import com.demo.dronebackend.model.GeoEntry;
+import com.demo.dronebackend.util.GeoEntry;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;

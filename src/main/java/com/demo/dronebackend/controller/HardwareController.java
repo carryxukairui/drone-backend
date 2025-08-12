@@ -1,8 +1,10 @@
 package com.demo.dronebackend.controller;
 
 import com.demo.dronebackend.dto.hardware.DeviceReport;
+import com.demo.dronebackend.factory.DeviceReportParserFactory;
 import com.demo.dronebackend.factory.DroneReportParserFactory;
 import com.demo.dronebackend.model.AlarmConvertible;
+import com.demo.dronebackend.model.DeviceConvertible;
 import com.demo.dronebackend.service.AlarmService;
 import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.util.Result;
@@ -26,9 +28,11 @@ public class HardwareController {
     private final AlarmService alarmService;
     private final DeviceService deviceService;
     private final DroneReportParserFactory droneReportParserFactory;
+    private final DeviceReportParserFactory deviceReportParserFactory;
 
     /**
      * 响应硬件发送请求
+     *
      * @param jsonNode 无人机原始侦测上报数据
      */
     @PostMapping("sys/portable/drone/report")
@@ -42,7 +46,16 @@ public class HardwareController {
         }
     }
 
-
+    @PostMapping("admin/devices/sub")
+    public Result<?> reportStatus(@RequestBody JsonNode jsonNode) {
+        try {
+            List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
+            reports.forEach(deviceService::handleDeviceReport);
+            return Result.success("处理成功");
+        } catch (Exception e) {
+            return Result.error("解析失败: " + e.getMessage());
+        }
+    }
 
     // 辅助方法
     private String getStringValue(JsonNode node, String fieldName) {
@@ -72,7 +85,7 @@ public class HardwareController {
 //
 //        return deviceService.websocketDevice(report);
 //    }
-    @PostMapping("admin/devices/sub")
+    @PostMapping("admin/devices/sub1")
     public Result<?> reportStatus(HttpServletRequest request) {
         try {
             // 读取请求体内容
@@ -122,7 +135,6 @@ public class HardwareController {
                     }
 
 
-
                     // 调用服务处理每个设备报告
                     Map<String, Object> result = deviceService.websocketDevice(report);
 
@@ -138,8 +150,6 @@ public class HardwareController {
             return Result.error("请求体解析失败: " + e.getMessage());
         }
     }
-
-
 
 
 }

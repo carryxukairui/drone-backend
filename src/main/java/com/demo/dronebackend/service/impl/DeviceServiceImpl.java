@@ -17,7 +17,8 @@ import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.DisposalRecordMapper;
 import com.demo.dronebackend.mapper.SystemLogMapper;
 import com.demo.dronebackend.mapper.UserMapper;
-import com.demo.dronebackend.model.GeoEntry;
+import com.demo.dronebackend.model.DeviceConvertible;
+import com.demo.dronebackend.util.GeoEntry;
 import com.demo.dronebackend.service.*;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
@@ -164,7 +165,82 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
         return Result.success("批量删除成功");
     }
+    @Override
+    public Map<String, Object> handleDeviceReport(DeviceConvertible report) {
+        Device devFromReport  = report.toDevice();
+        Device existingDevice = deviceMapper.selectById(devFromReport.getId());
+        if (existingDevice == null) {
+            return Map.of("code", 404, "msg", "Device not found");
+        }
+        // 只更新非空字段
+        if (devFromReport.getStationId() != null) {
+            existingDevice.setStationId(devFromReport.getStationId());
+        }
+        if (devFromReport.getLinkStatus() != null) {
+            existingDevice.setLinkStatus(devFromReport.getLinkStatus());
+        }
+        if (devFromReport.getLongitude() != null) {
+            existingDevice.setLongitude(devFromReport.getLongitude());
+        }
+        if (devFromReport.getLatitude() != null) {
+            existingDevice.setLatitude(devFromReport.getLatitude());
+        }
+        if (devFromReport.getIp() != null) {
+            existingDevice.setIp(devFromReport.getIp());
+        }
 
+        deviceMapper.updateById(existingDevice);
+
+
+        DeviceDTO dto = buildDtoFromDevice(existingDevice);
+        String userId = String.valueOf(existingDevice.getDeviceUserId());
+        String deviceId = existingDevice.getId();
+        String deviceTopic = DEVICES_WEBSOCKET_TOPIC + ":" + userId;
+        webSocketService.sendDeviceListToUser("device", deviceTopic, dto);
+
+
+        // —— 2. 维护“离线定时器” ——
+        // 如果之前已有一个未执行的“离线任务”，先取消它
+        ScheduledFuture<?> prev = offlineTasks.get(deviceId);
+        if (prev != null && !prev.isDone()) {
+            prev.cancel(false);
+        }
+        ScheduledFuture<?> future = taskScheduler.schedule(
+                () -> markOffline(deviceId, deviceTopic),
+                new Date(System.currentTimeMillis() + 60 * 1000)
+        );
+        offlineTasks.put(deviceId, future);
+        //无人值守逻辑
+        User user = userMapper.selectById(userId);
+
+        if (user != null && Integer.valueOf(1).equals(user.getUnattended())) {
+            List<SystemLog> logs = systemLogMapper.selectList(
+                    new LambdaQueryWrapper<SystemLog>()
+                            .eq(SystemLog::getUserId, userId)
+                            .eq(SystemLog::getOperationType, OP_TYPE_UNATTENDED_EVENT)
+                            .orderByDesc(SystemLog::getCreatedTime)
+                            .last("LIMIT 20")
+            );
+
+            List<SystemLogDTO> logDtos = logs.stream()
+                    .map(log -> {
+                        SystemLogDTO dtos = new SystemLogDTO();
+                        dtos.setOperationType(log.getOperationType());
+                        LocalDateTime ldt = LocalDateTime.ofInstant(
+                                log.getCreatedTime().toInstant(),
+                                ZoneId.systemDefault()
+                        );
+                        dtos.setCreatedTime(ldt.format(DTF));
+                        dtos.setDescription(log.getDescription());
+                        return dtos;
+                    })
+                    .toList();
+
+            String noAttendedTopic = UNATTENDED_WEBSOCKET_TOPIC + ":" + userId;
+            webSocketService.sendDeviceListToUser("noAttended", noAttendedTopic, logDtos);
+        }
+        return Map.of("code", 200, "msg", "Success");
+    }
     @Override
     public Map<String, Object> websocketDevice(DeviceReport report) {
         Device dev = deviceMapper.selectById(report.getId());
@@ -394,6 +470,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
 
         return Result.success(dtos);
     }
+
+
 
     private DeviceDTO reverseLocation(Device d, DeviceDTO dto, String location) {
         // 如果没有经纬度，保留默认提示
