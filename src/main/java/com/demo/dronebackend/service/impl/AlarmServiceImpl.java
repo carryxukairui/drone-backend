@@ -79,16 +79,13 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     public void handleDroneReport(AlarmConvertible report) {
         Alarm alarm = report.toAlarm();
         this.save(alarm);
-        User user = userMapper.selectById(StpUtil.getLoginIdAsLong());
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
-        // 超级管理员直接推送
-        if (!user.getPermission().equals(PermissionType.admin.getDesc()) && userId == null) {
+        if (userId == null) {
             log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getScanid());
             return;
         }
-
         // TODO:判断是否是无人值守模式
-        user = userMapper.selectById(userId);
+        User user = userMapper.selectById(userId);
         if (user != null && user.getUnattended() == 1) {
             unattendedService.onTdoaAlarm(alarm, user);
             return;
