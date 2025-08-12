@@ -89,7 +89,6 @@ public class WebSocketService {
             // 发送
             try {
                 String payload = objectMapper
-                        .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                         .writeValueAsString(page);
                 session.sendMessage(new TextMessage(payload));
             } catch (IOException e) {
