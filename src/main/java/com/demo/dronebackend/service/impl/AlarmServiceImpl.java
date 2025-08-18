@@ -73,7 +73,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final ConcurrentHashMap<String, AlarmPushBuffer> alarmPushMap = new ConcurrentHashMap<>();
     // 延迟任务线程池
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
-    private final int PUSH_THRESHOLD = 5; // 告警次数达到5次立即推送
+    private final int PUSH_THRESHOLD = 10; // 告警次数达到10次立即推送
     private final long PUSH_DELAY_MS = 1500; // 最长延迟 1.5 秒推送
 
     @Override
@@ -192,6 +192,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             }
             dto.setLongitude(((Number) row.get("last_longitude")).doubleValue());
             dto.setLatitude(((Number) row.get("last_latitude")).doubleValue());
+            dto.setBack_longitude(((Number) row.get("back_longitude")).doubleValue());
+            dto.setBack_latitude(((Number) row.get("back_latitude")).doubleValue());
             return dto;
         }).toList();
         // 分页

@@ -26,18 +26,17 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface AlarmMapper extends BaseMapper<Alarm> {
     @Select("""
-                SELECT a.*, COALESCE(d.type, 'gray') AS d_type
-                FROM (
-                    SELECT a1.*
+                SELECT a.id, a.drone_model,	a.drone_sn, a.intrusion_start_time, a.last_longitude, a.last_latitude,
+                       a.back_latitude, a.back_longitude, COALESCE(d.type, 'gray') AS d_type
+                FROM alarm a
+                INNER JOIN (
+                    SELECT a1.drone_sn,
+                           MAX(CONCAT(LPAD(UNIX_TIMESTAMP(a1.intrusion_start_time), 20, '0'), LPAD(a1.id, 20, '0'))) AS max_key
                     FROM alarm a1
-                    LEFT JOIN alarm a2
-                        ON a1.drone_sn = a2.drone_sn
-                        AND (
-                            a2.intrusion_start_time > a1.intrusion_start_time
-                            OR (a2.intrusion_start_time = a1.intrusion_start_time AND a2.id > a1.id)
-                        )
-                    WHERE a2.id IS NULL
-                ) a
+                    GROUP BY a1.drone_sn
+                ) latest
+                    ON CONCAT(LPAD(UNIX_TIMESTAMP(a.intrusion_start_time), 20, '0'), LPAD(a.id, 20, '0')) = latest.max_key
+                    AND a.drone_sn = latest.drone_sn
                 INNER JOIN device dev 
                     ON a.scanID = dev.id
                     AND dev.device_user_id = #{userId}

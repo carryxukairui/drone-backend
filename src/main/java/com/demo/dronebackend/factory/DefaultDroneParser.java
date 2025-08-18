@@ -49,7 +49,11 @@ public class DefaultDroneParser implements DroneReportParser {
         if (report.getLatitude() == null) report.setLatitude(0.0);
         if (report.getHeight() == null) report.setHeight(0.0);
         if (report.getLasting_time() == null) report.setLasting_time(0.0);
+        if (report.getHorizontal_heading_angle()==null) report.setHorizontal_heading_angle(0.0);
+        if (report.getVertical_heading_angle()==null) report.setVertical_heading_angle(0.0);
         if (report.getScanID() == null) report.setScanID(new ArrayList<>());
+        if (report.getBack_longitude()==null) report.setBack_longitude(400.0);
+        if (report.getBack_latitude()==null) report.setBack_latitude(400.0);
         if (StrUtil.isBlank(report.getStation_id())) report.setStation_id("UNKNOWN");
         if (StrUtil.isBlank(report.getId())) report.setId("UNKNOWN");
         if (StrUtil.isBlank(report.getDrone_uuid())) report.setDrone_uuid("UNKNOWN");

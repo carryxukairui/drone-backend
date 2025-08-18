@@ -53,6 +53,10 @@ public class DefaultDroneReport implements AlarmConvertible {
 
     private String drone_uuid;
 
+    private Double back_longitude;
+
+    private Double back_latitude;
+
     @Data
     public static class ScanID {
         private String id;
@@ -88,11 +92,11 @@ public class DefaultDroneReport implements AlarmConvertible {
         alarm.setScanids(this.scanID);
         alarm.setScanid(this.id);
         alarm.setLastingTime(this.lasting_time);
-        // 返航经纬度、飞手经纬度目前与告警经纬度保持一致
-        alarm.setBackLongitude(this.longitude);
-        alarm.setBackLatitude(this.latitude);
-        alarm.setPilotLongitude(this.longitude);
-        alarm.setPilotLatitude(this.latitude);
+        // 返航经纬度与飞手经纬度一致
+        alarm.setBackLongitude(this.back_longitude);
+        alarm.setBackLatitude(this.back_latitude);
+        alarm.setPilotLongitude(this.back_longitude);
+        alarm.setPilotLatitude(this.back_latitude);
         // 设置轨迹
         List<Map<String, Double>> trajectory = new ArrayList<>();
         Map<String, Double> point = new HashMap<>();
