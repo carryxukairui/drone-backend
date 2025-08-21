@@ -15,6 +15,7 @@ public class DeviceCommand {
     private int g24_onoff;
     private int g52_onoff;
     private int g58_onoff;
+    private double duration;
     public DeviceCommand(String deviceID, DeviceSettingReq  req){
         this.deviceID = deviceID;
         this.g09_onoff = req.getG09OnOff();
@@ -22,5 +23,6 @@ public class DeviceCommand {
         this.g24_onoff = req.getG24OnOff();
         this.g52_onoff = req.getG52OnOff();
         this.g58_onoff = req.getG58OnOff();
+        this.duration = req.getDuration();
     }
 }
