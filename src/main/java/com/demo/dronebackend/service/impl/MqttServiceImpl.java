@@ -1,27 +1,21 @@
 package com.demo.dronebackend.service.impl;
 
 import com.demo.dronebackend.controller.DeviceReportEvent;
-import com.demo.dronebackend.factory.DeviceReportParserFactory;
-import com.demo.dronebackend.model.DeviceConvertible;
-import com.demo.dronebackend.service.AlarmService;
-import com.demo.dronebackend.service.DeviceService;
+import com.demo.dronebackend.controller.DroneReportEvent;
 import com.demo.dronebackend.service.MqttService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class MqttServiceImpl implements MqttService {
 
     private final IMqttClient mqttClient;
-    private final static String TOPIC = "device/status";
+    private final static String DEVICETOPIC = "device/status";
+    private final static String TOPIC = "device/remoteID/report";
 
     private final ApplicationEventPublisher publisher;
     @Override
@@ -40,9 +34,14 @@ public class MqttServiceImpl implements MqttService {
     // 比如在某个初始化方法里订阅
     @PostConstruct
     public void initSubscribe() throws MqttException {
-        mqttClient.subscribe(TOPIC, (topic, message) -> {
+        mqttClient.subscribe(DEVICETOPIC, (topic, message) -> {
             String payload = new String(message.getPayload());
             publisher.publishEvent(new DeviceReportEvent(this, payload));
+
+        });
+        mqttClient.subscribe(TOPIC, (topic, message) -> {
+            String payload = new String(message.getPayload());
+            publisher.publishEvent(new DroneReportEvent(this, payload));
 
         });
 

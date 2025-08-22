@@ -15,7 +15,7 @@ public class ADeviceReport implements DeviceConvertible {
     private String stationId;
 
     private String id;
-    @JsonProperty("link_state")
+    @JsonProperty("link_status")
     private Integer linkState;
     @JsonProperty("data_rate")
     private Double data_rate;
