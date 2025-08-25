@@ -17,16 +17,14 @@ import com.demo.dronebackend.mapper.AlarmMapper;
 import com.demo.dronebackend.mapper.DeviceMapper;
 import com.demo.dronebackend.mapper.UserMapper;
 import com.demo.dronebackend.model.*;
-import com.demo.dronebackend.service.GeoCacheServiceImpl;
+import com.demo.dronebackend.service.*;
+import com.demo.dronebackend.util.AlarmKeyGenerator;
 import com.demo.dronebackend.util.GeoEntry;
 import com.demo.dronebackend.util.MyPage;
 import com.demo.dronebackend.util.Result;
 import com.demo.dronebackend.pojo.Alarm;
 import com.demo.dronebackend.pojo.DateCount;
 import com.demo.dronebackend.pojo.User;
-import com.demo.dronebackend.service.AlarmService;
-import com.demo.dronebackend.service.TiandituService;
-import com.demo.dronebackend.service.UnattendedService;
 import com.demo.dronebackend.ws.WebSocketService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,8 +40,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-
-import static com.demo.dronebackend.constant.SystemConstants.TRAJECTORY_TIME;
+import static com.demo.dronebackend.constant.SystemConstants.DEFAULT_ALARM_TIME_RANGE;
 import static com.demo.dronebackend.constant.SystemLogConstants.DEVICE_DISPOSAL_EVENT;
 
 /**
@@ -66,6 +63,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     private final UnattendedService unattendedService;
     private final DeviceDisposalManager deviceDisposalManager;
     private final GeoCacheServiceImpl geoCacheService;
+    private final AlarmKeyGenerator alarmKeyGenerator;
 
     private RealtimeAlarmReq req = new RealtimeAlarmReq();
 
@@ -79,7 +77,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     @Override
     public void handleDroneReport(AlarmConvertible report) {
         Alarm alarm = report.toAlarm();
-        this.save(alarm);
+        long newId = alarmKeyGenerator.generateNextKey();
+        alarm.setId(newId);
+        alarmMapper.upsert(alarm);
         Long userId = deviceMapper.findUserIdsByDeviceId(alarm.getScanid());
         if (userId == null) {
             log.info("告警信息中的设备{}尚未绑定任何用户", alarm.getScanid());
@@ -165,10 +165,16 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         int page = req.getPage();
         int size = req.getSize();
         int sizeLimit = req.getSize_limit();
+        Date startTime= req.getStartTime();
+        Date endTime= req.getEndTime();
+        // 未指定起止时间时，设置默认查询范围
+        if (startTime == null && endTime == null) {
+            startTime = new Date(System.currentTimeMillis() - DEFAULT_ALARM_TIME_RANGE);
+        }
         // 按条件查询告警 + 黑白名单类型，只显示未处置记录
         List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
-                req.getStartTime(),
-                req.getEndTime(),
+                startTime,
+                endTime,
                 req.getDroneModel(),
                 req.getType(),
                 userId,
@@ -244,7 +250,7 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             throw new BusinessException("当前告警缺少 intrusionStartTime");
         }
         // 计算查询的时间点
-        Date startTime = new Date(intrusionStartTime.getTime() - TRAJECTORY_TIME);
+        Date startTime = new Date(intrusionStartTime.getTime() - DEFAULT_ALARM_TIME_RANGE);
         Long userId = StpUtil.getLoginIdAsLong();
         // 查询指定时间内该 droneSn 的所有告警，按入侵时间升序排序
         List<Alarm> recentAlarms = alarmMapper.selectRecentAlarms(droneSn, startTime, intrusionStartTime,userId);
@@ -647,8 +653,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
     @Override
     public Result<?> getBrandCount() {
         LocalDate today = LocalDate.now();
-        LocalDateTime startTime = today.atStartOfDay();
-        LocalDateTime endTime = today.plusDays(1).atStartOfDay();
+        Date startTime = toDate(today.atStartOfDay());
+        Date endTime = toDate(today.atTime(LocalTime.MAX));
         // 获取品牌和对应起飞架次
         List<Map<String, Object>> data = alarmMapper.countFlightByBrand(StpUtil.getLoginIdAsLong(), startTime, endTime);
         // 计算总架次

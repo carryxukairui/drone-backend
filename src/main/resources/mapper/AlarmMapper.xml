@@ -54,4 +54,54 @@
         WHERE intrusion_start_time BETWEEN #{start} AND #{end}
         GROUP BY DATE(intrusion_start_time)
     </select>
+
+
+    <insert id="upsert" parameterType="com.demo.dronebackend.pojo.Alarm">
+        INSERT INTO alarm (id, drone_model, last_longitude, last_latitude, last_altitude,
+                           takeoff_time, landing_time, intrusion_start_time,
+                           drone_id, drone_sn, drone_type,
+                           frequency, bandwidth, speed,
+                           horizontal_heading_angle, vertical_heading_angle, `type`,
+                           scanIDs, scanID, lasting_time,
+                           back_longitude, back_latitude, pilot_longitude, pilot_latitude,
+                           trajectory, station_id, detect_type, is_disposed)
+        VALUES (#{id}, #{droneModel}, #{lastLongitude}, #{lastLatitude}, #{lastAltitude},
+                #{takeoffTime}, #{landingTime}, #{intrusionStartTime},
+                #{droneId}, #{droneSn}, #{droneType},
+                #{frequency}, #{bandwidth}, #{speed},
+                #{horizontalHeadingAngle}, #{verticalHeadingAngle}, #{type},
+                #{scanids, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+                #{scanid}, #{lastingTime},
+                #{backLongitude}, #{backLatitude}, #{pilotLongitude}, #{pilotLatitude},
+                #{trajectory, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+                #{stationId}, #{detectType}, #{isDisposed}) ON DUPLICATE KEY
+        UPDATE
+            drone_model = VALUES(drone_model),
+            last_longitude = VALUES(last_longitude),
+            last_latitude = VALUES(last_latitude),
+            last_altitude = VALUES(last_altitude),
+            takeoff_time = VALUES(takeoff_time),
+            landing_time = VALUES(landing_time),
+            intrusion_start_time = VALUES(intrusion_start_time),
+            drone_id = VALUES(drone_id),
+            drone_sn = VALUES(drone_sn),
+            drone_type = VALUES(drone_type),
+            frequency = VALUES(frequency),
+            bandwidth = VALUES(bandwidth),
+            speed = VALUES(speed),
+            horizontal_heading_angle = VALUES(horizontal_heading_angle),
+            vertical_heading_angle = VALUES(vertical_heading_angle),
+            `type` = VALUES(`type`),
+            scanIDs = VALUES(scanIDs),
+            scanID = VALUES(scanID),
+            lasting_time = VALUES(lasting_time),
+            back_longitude = VALUES(back_longitude),
+            back_latitude = VALUES(back_latitude),
+            pilot_longitude = VALUES(pilot_longitude),
+            pilot_latitude = VALUES(pilot_latitude),
+            trajectory = VALUES(trajectory),
+            station_id = VALUES(station_id),
+            detect_type = VALUES(detect_type),
+            is_disposed = VALUES(is_disposed)
+    </insert>
 </mapper>

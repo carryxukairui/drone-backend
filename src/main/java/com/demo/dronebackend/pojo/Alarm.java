@@ -16,7 +16,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 @TableName(value ="alarm")
 @Data
 public class Alarm {
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.INPUT)
     private Long id;
 
     private String droneModel;

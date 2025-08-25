@@ -30,10 +30,11 @@ public class SystemConstants {
     public static final String SA_TOKEN = "satoken=";
 
     /**
-     * 合并指定时间范围内同一无人机触发的所有轨迹信息，可根据业务调整
-     * 默认为24小时
+     * 查询告警记录开始时间
+     * 合并无人机轨迹时间范围
+     * 默认为12小时前，单位毫秒
      */
-    public static final long TRAJECTORY_TIME = 24L * 60 * 60 * 1000;
+    public static final long DEFAULT_ALARM_TIME_RANGE = 12L * 60 * 60 * 1000;
 
     public static final String ALARM_WEBSOCKET_TOPIC = "alarm";
     public static final String DEVICES_WEBSOCKET_TOPIC = "devices";

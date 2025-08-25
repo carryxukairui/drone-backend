@@ -5,9 +5,6 @@ import com.demo.dronebackend.dto.screen.MonthDroneStatsDTO;
 import com.demo.dronebackend.pojo.Alarm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.*;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +22,15 @@ import org.apache.ibatis.annotations.Select;
  */
 @Mapper
 public interface AlarmMapper extends BaseMapper<Alarm> {
+
+    /**
+     * 插入或更新一条告警记录。
+     * 如果ID已存在，则用新数据完全覆盖旧数据。
+     * @param alarm 要插入或更新的告警实体
+     * @return 影响的行数
+     */
+    int upsert(Alarm alarm);
+
     @Select("""
                 SELECT a.id, a.drone_model,	a.drone_sn, a.intrusion_start_time, a.last_longitude, a.last_latitude,
                        a.back_latitude, a.back_longitude, COALESCE(d.type, 'gray') AS d_type
@@ -33,6 +39,9 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
                     SELECT a1.drone_sn,
                            MAX(CONCAT(LPAD(UNIX_TIMESTAMP(a1.intrusion_start_time), 20, '0'), LPAD(a1.id, 20, '0'))) AS max_key
                     FROM alarm a1
+                    WHERE
+                         (#{startTime} IS NULL OR a1.intrusion_start_time >= #{startTime})
+                         AND (#{endTime} IS NULL OR a1.intrusion_start_time <= #{endTime})
                     GROUP BY a1.drone_sn
                 ) latest
                     ON CONCAT(LPAD(UNIX_TIMESTAMP(a.intrusion_start_time), 20, '0'), LPAD(a.id, 20, '0')) = latest.max_key
@@ -215,8 +224,8 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
             """)
     List<Map<String, Object>> countFlightByBrand(
             @Param("userId") Long userId,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime
     );
 
 
