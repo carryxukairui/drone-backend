@@ -4,6 +4,7 @@ package com.demo.dronebackend.dto.hardware;
 import com.demo.dronebackend.exception.BusinessException;
 import com.demo.dronebackend.model.AlarmConvertible;
 import com.demo.dronebackend.pojo.Alarm;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.text.ParseException;
@@ -57,7 +58,9 @@ public class DefaultDroneReport implements AlarmConvertible {
 
     private Double back_latitude;
     //操作员位置纬度
+    @JsonProperty("Op_Lon")
     private Double Op_Lon;
+    @JsonProperty("Op_Lat")
     private Double Op_Lat;
 
     @Data
@@ -96,8 +99,8 @@ public class DefaultDroneReport implements AlarmConvertible {
         alarm.setScanid(this.id);
         alarm.setLastingTime(this.lasting_time);
         // 返航经纬度与飞手经纬度一致
-        alarm.setBackLongitude(this.back_longitude);
-        alarm.setBackLatitude(this.back_latitude);
+        alarm.setBackLongitude(this.Op_Lon);
+        alarm.setBackLatitude(this.Op_Lat);
         alarm.setPilotLongitude(this.Op_Lon);
         alarm.setPilotLatitude(this.Op_Lat);
         // 设置轨迹

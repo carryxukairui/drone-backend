@@ -70,7 +70,7 @@ public class HardwareController {
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
             reports.forEach(deviceService::handleDeviceReport);
         } catch (Exception ex) {
-            // ...
+            System.out.println("解析失败: " + ex.getMessage());
         }
     }
 
@@ -83,7 +83,7 @@ public class HardwareController {
             List<AlarmConvertible> reports = droneReportParserFactory.parse(jsonNode);
             reports.forEach(alarmService::handleDroneReport);
         } catch (Exception ex) {
-
+            System.out.println("解析失败: " + ex.getMessage());
         }
     }
 
