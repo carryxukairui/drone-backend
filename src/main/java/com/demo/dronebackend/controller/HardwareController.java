@@ -5,25 +5,28 @@ import com.demo.dronebackend.factory.DroneReportParserFactory;
 import com.demo.dronebackend.model.AlarmConvertible;
 import com.demo.dronebackend.model.DeviceConvertible;
 import com.demo.dronebackend.service.AlarmService;
+import com.demo.dronebackend.service.DeviceService;
 import com.demo.dronebackend.util.Result;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 @RestController
 @RequestMapping("/")
 @RequiredArgsConstructor
 public class HardwareController {
     private final AlarmService alarmService;
+    private final DeviceService deviceService;
     private final DroneReportParserFactory droneReportParserFactory;
     private final DeviceReportParserFactory deviceReportParserFactory;
-    private Consumer<DeviceConvertible> handleDeviceReport;
+    private final ObjectMapper mapper;
 
     /**
      * 响应硬件发送请求
@@ -50,10 +53,37 @@ public class HardwareController {
     public Result<?> reportStatus(@RequestBody JsonNode jsonNode) {
         try {
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
-            reports.forEach(handleDeviceReport);
+            reports.forEach(deviceService::handleDeviceReport);
             return Result.success("处理成功");
         } catch (Exception e) {
             return Result.error("解析失败: " + e.getMessage());
+        }
+    }
+
+
+
+    @EventListener
+    public void onDeviceReport(DeviceReportEvent e) {
+        try {
+            JsonNode jsonNode = mapper.readTree(e.getPayload());
+            System.out.println("收到设备状态消息: " + jsonNode);
+            List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
+            reports.forEach(deviceService::handleDeviceReport);
+        } catch (Exception ex) {
+            // ...
+        }
+    }
+
+
+    @EventListener
+    public void onDroneReport(DroneReportEvent e) {
+        try {
+            JsonNode jsonNode = mapper.readTree(e.getPayload());
+            System.out.println("收到告警消息: " + jsonNode);
+            List<AlarmConvertible> reports = droneReportParserFactory.parse(jsonNode);
+            reports.forEach(alarmService::handleDroneReport);
+        } catch (Exception ex) {
+
         }
     }
 

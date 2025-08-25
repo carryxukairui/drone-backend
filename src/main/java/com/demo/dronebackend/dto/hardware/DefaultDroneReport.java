@@ -56,6 +56,9 @@ public class DefaultDroneReport implements AlarmConvertible {
     private Double back_longitude;
 
     private Double back_latitude;
+    //操作员位置纬度
+    private Double Op_Lon;
+    private Double Op_Lat;
 
     @Data
     public static class ScanID {
@@ -95,8 +98,8 @@ public class DefaultDroneReport implements AlarmConvertible {
         // 返航经纬度与飞手经纬度一致
         alarm.setBackLongitude(this.back_longitude);
         alarm.setBackLatitude(this.back_latitude);
-        alarm.setPilotLongitude(this.back_longitude);
-        alarm.setPilotLatitude(this.back_latitude);
+        alarm.setPilotLongitude(this.Op_Lon);
+        alarm.setPilotLatitude(this.Op_Lat);
         // 设置轨迹
         List<Map<String, Double>> trajectory = new ArrayList<>();
         Map<String, Double> point = new HashMap<>();

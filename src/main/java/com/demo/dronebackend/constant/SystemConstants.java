@@ -41,4 +41,5 @@ public class SystemConstants {
     public static final String UNATTENDED_WEBSOCKET_TOPIC = "unattended";
 
     public static final String TOPIC = "device/command/startJam";
+    public static final String REMOTEIDTOPIC = "device/command/startJam";
 }

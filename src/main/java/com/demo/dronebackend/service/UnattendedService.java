@@ -51,6 +51,7 @@ public class UnattendedService {
     private static final int BAND_2_7GHZ = 24;
     private static final int BAND_5_2GHZ = 52;
     private static final int BAND_5_8GHZ = 58;
+    private static final double duration = 20.0;
 
     public void onTdoaAlarm(Alarm alarm, User u) {
 
@@ -122,7 +123,7 @@ public class UnattendedService {
     private void sendJammerCommandWithRetry(String deviceId, String action,
                                             int band, User user, int maxRetries) {
         for (int i = 0; i < maxRetries; i++) {
-            if (sendJammerCommand(deviceId, action, band, user)) {
+            if (sendJammerCommand(deviceId, action, band, user,duration)) {
                 return; // 成功后退出
             }
         }
@@ -280,7 +281,7 @@ public class UnattendedService {
     /**
      * 发送干扰指令
      */
-    public boolean sendJammerCommand(String deviceId, String action, int band, User user) {
+    public boolean sendJammerCommand(String deviceId, String action, int band, User user,Double dduration) {
         int onoff09 = 2;
         int onoff16 = 2;
         int onoff24 = 2;
@@ -308,7 +309,7 @@ public class UnattendedService {
                 log.warn("未知频段 {}，保持所有频段原状态", band);
             }
         }
-        DeviceCommand command = new DeviceCommand(deviceId, onoff09, onoff16, onoff24,onoff52, onoff58);
+        DeviceCommand command = new DeviceCommand(deviceId, onoff09, onoff16, onoff24,onoff52, onoff58,dduration);
         try {
             String payload = new ObjectMapper()
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
