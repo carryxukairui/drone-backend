@@ -54,10 +54,7 @@ public class DefaultDroneReport implements AlarmConvertible {
 
     private String drone_uuid;
 
-    private Double back_longitude;
-
-    private Double back_latitude;
-    //操作员位置纬度
+    //操作员位置经纬度
     @JsonProperty("Op_Lon")
     private Double Op_Lon;
     @JsonProperty("Op_Lat")
