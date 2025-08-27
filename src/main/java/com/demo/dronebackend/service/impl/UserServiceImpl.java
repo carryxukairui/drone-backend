@@ -32,7 +32,7 @@ import static com.demo.dronebackend.constant.SystemConstants.INITIAL_PASSWORD;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-    implements UserService{
+        implements UserService {
 
     private final UserMapper userMapper;
     private final SmsService smsService;
@@ -41,7 +41,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Result<?> sendCode(SendCodeReq req) {
         String phone = req.getPhone();
         int flag = smsService.sendSms(phone, req.getSign());
-        if (flag == -1){
+        if (flag == -1) {
             return Result.error("非法请求");
         }
         return Result.success("验证码发送成功");
@@ -70,10 +70,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String phone = req.getPhone();
         String code = req.getCode();
         String storeCode = smsService.getStoredCode(phone);
-        if (storeCode == null ){
+        if (storeCode == null) {
             return Result.error("验证码已过期");
         }
-        if (!storeCode.equals(code)){
+        if (!storeCode.equals(code)) {
             return Result.error("验证码错误");
         }
         User user = query().eq("phone", phone).one();
@@ -89,7 +89,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> updatePassword(UpdatePasswordReq req) {
-        if (req.getNewPassword().equals(req.getOldPassword())){
+        if (req.getNewPassword().equals(req.getOldPassword())) {
             return Result.error("新密码不能与原密码相同");
         }
         long userId = StpUtil.getLoginIdAsLong();
@@ -108,8 +108,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> resetPassword(ResetReq req) {
-        long userId = StpUtil.getLoginIdAsLong();
-        User user = userMapper.selectById(userId);
+        String storedCode = smsService.getStoredCode(req.getPhone());
+        if (storedCode == null) {
+            return Result.error("验证码已过期");
+        }
+        if (!storedCode.equals(req.getCode())) {
+            return Result.error("验证码错误");
+        }
+        smsService.deleteCode(req.getPhone());
+
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, req.getPhone()));
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
         // 生成新随机盐并更新
         user.setSalt(SaltUtil.generateSalt());
         user.setPassword(MD5Util.hash(req.getNewPassword(), user.getSalt()));
@@ -120,15 +132,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> addUser(AddUserReq req) {
-        if (!isAdmin()){
+        if (!isAdmin()) {
             throw new BusinessException("无权限");
-        }
-        String storeCode = smsService.getStoredCode(req.getPhone());
-        if (storeCode == null ){
-            return Result.error("验证码已过期");
-        }
-        if (!storeCode.equals(req.getCode())){
-            return Result.error("验证码错误");
         }
         User user = query().eq("phone", req.getPhone()).one();
         if (user != null) {
@@ -153,11 +158,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> deleteUser(String id) {
-        if (!isAdmin()){
+        if (!isAdmin()) {
             throw new BusinessException("无权限");
         }
         int cnt = userMapper.deleteById(Long.parseLong(id));
-        if (cnt==0){
+        if (cnt == 0) {
             throw new BusinessException("用户不存在");
         }
         return Result.success("删除用户成功");
@@ -165,26 +170,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> updateUser(String id, UpdateUserReq req) {
-        if (!isAdmin()){
+        if (!isAdmin()) {
             throw new BusinessException("无权限");
         }
         User user = userMapper.selectById(Long.parseLong(id));
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
-        if (StrUtil.isNotBlank(req.getName())){
+        if (StrUtil.isNotBlank(req.getName())) {
             user.setName(req.getName());
         }
-        if (StrUtil.isNotBlank(req.getSex())){
+        if (StrUtil.isNotBlank(req.getSex())) {
             user.setSex(req.getSex());
         }
-        if (StrUtil.isNotBlank(req.getPhone())){
+        if (StrUtil.isNotBlank(req.getPhone())) {
             user.setPhone(req.getPhone());
         }
-        if (StrUtil.isNotBlank(req.getOrganization())){
+        if (StrUtil.isNotBlank(req.getOrganization())) {
             user.setOrganization(req.getOrganization());
         }
-        if (StrUtil.isNotBlank(req.getPermission())){
+        if (StrUtil.isNotBlank(req.getPermission())) {
             user.setPermission(req.getPermission());
         }
 
@@ -194,7 +199,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> listUsers(UserQueryReq req) {
-        if (!isAdmin()){
+        if (!isAdmin()) {
             throw new BusinessException("无权限");
         }
         System.out.println(req.getPhone());
@@ -232,9 +237,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Result<?> setUnattended(Boolean flag) {
         long userId = StpUtil.getLoginIdAsLong();
         User user = userMapper.selectById(userId);
-        if (flag){
+        if (flag) {
             user.setUnattended(1);
-        }else {
+        } else {
             user.setUnattended(0);
         }
         userMapper.updateById(user);
@@ -242,9 +247,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     // 判断当前用户权限
-    private boolean isAdmin(){
+    private boolean isAdmin() {
         User user = CurrentUserContext.get();
-        if(PermissionType.admin.getDesc().equals(user.getPermission())){
+        if (PermissionType.admin.getDesc().equals(user.getPermission())) {
             return true;
         }
         return false;

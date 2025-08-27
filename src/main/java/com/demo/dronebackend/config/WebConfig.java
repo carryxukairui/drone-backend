@@ -26,11 +26,15 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/admin/users/login-pwd",
+                        "/admin/users/login-code",
+                        "/admin/users/reset-pwd",
+                        "/admin/users/send-code",
+                        "/user/login-pwd",
                         "/user/login-code",
                         "/user/send-code",
+                        "/user/reset-pwd",
                         "/sys/portable/status/**",
                         "/admin/devices/**",
-                        "/user/login-pwd",
                         "/screen/**",
                         "/user/logout",
                         "/sys/portable/status/report",
