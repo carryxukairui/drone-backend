@@ -1,5 +1,6 @@
 package com.demo.dronebackend.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -19,7 +20,7 @@ import java.util.Arrays;
 @Service
 public class DroneServiceImpl extends ServiceImpl<DroneMapper, Drone> implements DroneService{
     @Override
-    public Result<Page<Drone>> getDroneList(Integer currentPage,Integer pageSize,String droneBrand,String droneModel,String droneSn,String type,Long userId) {
+    public Result<Page<Drone>> getDroneList(Integer currentPage,Integer pageSize,String droneBrand,String droneModel,String droneSn,String type) {
         Page<Drone> page = new Page<>(currentPage,pageSize);
         LambdaQueryWrapper<Drone> queryWrapper = new LambdaQueryWrapper<>();
         //条件非空判断
@@ -35,9 +36,8 @@ public class DroneServiceImpl extends ServiceImpl<DroneMapper, Drone> implements
         if(type != null&& !type.isEmpty()){
             queryWrapper.like(Drone::getType,type);
         }
-        if(userId != null){
-            queryWrapper.eq(Drone::getUserId,userId);
-        }
+        Long userId = StpUtil.getLoginIdAsLong();
+        queryWrapper.eq(Drone::getUserId,userId);
         Page<Drone> pageData = this.page(page,queryWrapper);
         return  Result.success(pageData);
     }

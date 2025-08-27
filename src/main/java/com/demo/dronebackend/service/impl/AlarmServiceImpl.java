@@ -575,8 +575,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
                         MonthDroneStatsDTO::getMonth,
                         MonthDroneStatsDTO::getCount
                 ));
-        System.out.println("monthMap:"+monthMap);
-
         List<MonthDroneStatsDTO> stats = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
             String monthStr = String.format("%02d", m);

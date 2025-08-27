@@ -21,6 +21,7 @@ public class SmsService {
     private static final String SMS_CODE_PREFIX = "SMS_CODE_";
 
     private static final String SECRET_KEY = "drone_code_secret_key";
+
     private Client createClient() throws Exception {
         Config config = new Config()
                 .setAccessKeyId(aliSmsConfig.getAccessKeyId())
@@ -29,13 +30,14 @@ public class SmsService {
         return new com.aliyun.dysmsapi20170525.Client(config);
     }
 
-    public int sendSms(String phone,String sign) {
+    public int sendSms(String phone, String sign) {
         String expectedSign = phone + SECRET_KEY;
-        if(!expectedSign.equals(phone+sign)){
+        if (!expectedSign.equals(phone + sign)) {
             return -1;
         }
-        String code = String.valueOf(new Random().nextInt(900000)+100000);
+        String code = String.valueOf(new Random().nextInt(900000) + 100000);
         try {
+
             com.aliyun.dysmsapi20170525.Client client = createClient();
             SendSmsRequest request = new SendSmsRequest()
                     .setSignName(aliSmsConfig.getSignName())
@@ -44,7 +46,6 @@ public class SmsService {
                     .setTemplateParam("{\"code\":\"" + code + "\"}");
 
             client.sendSms(request);
-
             // 存入 Redis，有效期 2 分钟
             redisTemplate.opsForValue().set(SMS_CODE_PREFIX + phone, code, 2, TimeUnit.MINUTES);
             return 1;
@@ -53,6 +54,7 @@ public class SmsService {
             throw new RuntimeException("短信发送异常");
         }
     }
+
     /**
      * 获取存储的验证码
      */

@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface DroneService extends IService<Drone> {
 
-   Result<Page<Drone>> getDroneList(Integer currentPage,Integer pageSize,String droneBrand,String droneModel,String droneSn,String type,Long userId);
+   Result<Page<Drone>> getDroneList(Integer currentPage,Integer pageSize,String droneBrand,String droneModel,String droneSn,String type);
    Result<Drone> getDroneById(Long id);
    Result<Drone> addDrone(Drone drone);
    Result<Drone> updateDrone(Drone drone);

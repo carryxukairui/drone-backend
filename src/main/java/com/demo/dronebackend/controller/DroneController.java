@@ -21,10 +21,9 @@ public class DroneController {
             @RequestParam(required = false)  String droneBrand,
             @RequestParam(required = false)  String droneModel,
             @RequestParam(required = false)  String droneSn,
-            @RequestParam(required = false)  String type,
-            @RequestParam(required = false)   Long userId
+            @RequestParam(required = false)  String type
             ) {
-        return droneService.getDroneList(page,size,droneBrand,droneModel,droneSn,type,userId);
+        return droneService.getDroneList(page,size,droneBrand,droneModel,droneSn,type);
     }
     @PostMapping
     public Result<Drone> add(@Valid  @RequestBody Drone drone) {
