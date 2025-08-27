@@ -189,6 +189,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (devFromReport.getIp() != null) {
             existingDevice.setIp(devFromReport.getIp());
         }
+        if (devFromReport.getTemperature() != null){
+            existingDevice.setTemperature(devFromReport.getTemperature());
+        }
         existingDevice.setReportTime(new Date());
         deviceMapper.updateById(existingDevice);
 
@@ -336,7 +339,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         //tiandituService.reverseGeocode(dev.getLongitude(), dev.getLatitude());
         String location = "经度:" + dev.getLongitude() + " | 纬度:" + dev.getLatitude();
         dto = reverseLocation(dev, dto, location);
-
+        dto.setTemperature(dev.getTemperature());
         dto.setReportTime(dev.getReportTime());
         return dto;
     }

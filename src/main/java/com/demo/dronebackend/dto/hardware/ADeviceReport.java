@@ -35,7 +35,6 @@ public class ADeviceReport implements DeviceConvertible {
         dev.setLatitude(this.lat != null ? this.lat : 30.527);
         dev.setIp(this.ip != null ? this.ip : "UNKNOWN");
 
-        System.out.println("UNKNOWN device:"+dev);
         return dev;
     }
 }

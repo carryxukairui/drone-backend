@@ -40,4 +40,5 @@ public class Device {
 
     private Double power;
     private Date reportTime;
+    private Double temperature;
 }

@@ -16,4 +16,5 @@ public class DeviceDTO{
     private String location;
     private String deviceType;
     private Date reportTime;
+    private Double temperature;
 }
