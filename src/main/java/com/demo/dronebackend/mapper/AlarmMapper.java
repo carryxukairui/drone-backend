@@ -33,7 +33,7 @@ public interface AlarmMapper extends BaseMapper<Alarm> {
 
     @Select("""
                 SELECT a.id, a.drone_model,	a.drone_sn, a.intrusion_start_time, a.last_longitude, a.last_latitude,
-                       a.back_latitude, a.back_longitude, COALESCE(d.type, 'gray') AS d_type
+                       a.last_altitude, a.speed, a.back_latitude, a.back_longitude, COALESCE(d.type, 'gray') AS d_type
                 FROM alarm a
                 INNER JOIN (
                     SELECT a1.drone_sn,

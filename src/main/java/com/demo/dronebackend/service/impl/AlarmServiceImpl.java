@@ -198,6 +198,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
             }
             dto.setLongitude(((Number) row.get("last_longitude")).doubleValue());
             dto.setLatitude(((Number) row.get("last_latitude")).doubleValue());
+            dto.setAltitude(((Number) row.get("last_altitude")).doubleValue());
+            dto.setSpeed(((Number) row.get("speed")).doubleValue());
             dto.setBack_longitude(((Number) row.get("back_longitude")).doubleValue());
             dto.setBack_latitude(((Number) row.get("back_latitude")).doubleValue());
             return dto;
