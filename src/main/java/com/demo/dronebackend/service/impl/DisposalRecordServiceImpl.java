@@ -58,7 +58,7 @@ public class DisposalRecordServiceImpl extends ServiceImpl<DisposalRecordMapper,
             Long userId = user.getId();
             qw.eq(DisposalRecord::getDeviceId, q.getDeviceId());
             qw.inSql(DisposalRecord::getDeviceId,
-                    "SELECT id FROM device WHERE device_user_id" + userId);
+                    "SELECT id FROM device WHERE device_user_id = " + userId);
         }
         Page<DisposalRecord> disposalRecordPage = mapper.selectPage(page, qw);
 
