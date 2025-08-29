@@ -466,6 +466,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             dto.setLongitude(d.getLongitude());
             String location = "位置";
             dto.setReportTime(d.getReportTime());
+            dto.setTemperature(d.getTemperature());
             dto = reverseLocation(d,dto,location);
 
             return dto;

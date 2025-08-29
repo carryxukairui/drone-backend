@@ -34,7 +34,7 @@ public class ADeviceReport implements DeviceConvertible {
         dev.setLongitude(this.lng != null ? this.lng : 120.72);
         dev.setLatitude(this.lat != null ? this.lat : 30.527);
         dev.setIp(this.ip != null ? this.ip : "UNKNOWN");
-
+        dev.setTemperature(this.tempeature != null ? this.tempeature : 0.0);
         return dev;
     }
 }

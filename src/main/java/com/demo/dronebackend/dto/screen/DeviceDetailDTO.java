@@ -13,6 +13,7 @@ public class DeviceDetailDTO {
     private Integer linkStatus;
     private Double latitude;
     private Double longitude;
+    private Double temperature;
 
     public DeviceDetailDTO(Device  device){
         this.deviceId = device.getId();
@@ -23,5 +24,6 @@ public class DeviceDetailDTO {
         this.linkStatus = device.getLinkStatus();
         this.latitude = device.getLatitude();
         this.longitude = device.getLongitude();
+        this.temperature = device.getTemperature();
     }
 }
