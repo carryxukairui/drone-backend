@@ -66,7 +66,6 @@ public class HardwareController {
     public void onDeviceReport(DeviceReportEvent e) {
         try {
             JsonNode jsonNode = mapper.readTree(e.getPayload());
-            System.out.println("收到设备状态消息: " + jsonNode);
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
             reports.forEach(deviceService::handleDeviceReport);
         } catch (Exception ex) {
@@ -79,7 +78,6 @@ public class HardwareController {
     public void onDroneReport(DroneReportEvent e) {
         try {
             JsonNode jsonNode = mapper.readTree(e.getPayload());
-            System.out.println("收到告警消息: " + jsonNode);
             List<AlarmConvertible> reports = droneReportParserFactory.parse(jsonNode);
             reports.forEach(alarmService::handleDroneReport);
         } catch (Exception ex) {

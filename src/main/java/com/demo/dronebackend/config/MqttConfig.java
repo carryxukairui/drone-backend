@@ -30,7 +30,6 @@ public class MqttConfig {
         options.setAutomaticReconnect(true);
 
         mqttClient.connect(options);
-        System.out.println("MQTT Client connected to broker: " + broker);
         log.info("MQTT Client connected to broker: {}", broker);
     }
 

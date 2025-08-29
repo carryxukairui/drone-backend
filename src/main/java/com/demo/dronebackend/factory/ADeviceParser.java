@@ -19,7 +19,7 @@ public class ADeviceParser implements DeviceReportParser {
     @Override
     public boolean supports(JsonNode jsonNode) {
         // 假设 A 厂商数据带 temperature 字段
-        return jsonNode.has("scannerD") && jsonNode.has("station_id") && jsonNode.get("scannerD").get(0).has("temperature");
+        return jsonNode.has("scannerD") && jsonNode.has("station_id") && jsonNode.get("scannerD").get(0).has("tempeature");
     }
 
     @Override
