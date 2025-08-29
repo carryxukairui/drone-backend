@@ -73,6 +73,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     private final DeviceDisposalManager deviceDisposalManager;
     private final TaskScheduler taskScheduler;
     private final GeoCacheServiceImpl geoCacheService;
+    private static  final  Integer OFFLINE_CHECK_INTERVAL =  20 * 1000;
     private static final DateTimeFormatter DTF =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // 存储每个设备对应的“离线检测”定时任务
@@ -277,7 +278,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> markOffline(deviceId, deviceTopic),
-                new Date(System.currentTimeMillis() + 60 * 1000)
+                new Date(System.currentTimeMillis() + OFFLINE_CHECK_INTERVAL)
         );
         offlineTasks.put(deviceId, future);
         //无人值守逻辑
