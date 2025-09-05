@@ -212,7 +212,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> markOffline(deviceId, deviceTopic),
-                new Date(System.currentTimeMillis() + 60 * 1000)
+                new Date(System.currentTimeMillis() + OFFLINE_CHECK_INTERVAL)
         );
         offlineTasks.put(deviceId, future);
         //无人值守逻辑
@@ -397,7 +397,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             return Result.error("更新失败");
         }
         Instant start = Instant.now();
-        Instant end = start.plus(Duration.ofSeconds((long) paramSettings.getDuration()));
+        double duration = paramSettings.getDuration();
+        if (duration > 60){
+            duration = 60;
+        }
+        Instant end = start.plus(Duration.ofSeconds((long) duration));
         deviceDisposalManager.startDisposal(device, start, end);
         return Result.success("设备处置已启动");
     }
