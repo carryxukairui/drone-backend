@@ -37,6 +37,7 @@ public class HardwareController {
     public Result<?> reportDrone(@RequestBody JsonNode jsonNode) {
         try {
             List<AlarmConvertible> reports = droneReportParserFactory.parse(jsonNode);
+            if (reports == null || reports.isEmpty()) return Result.error("无有效数据: " + jsonNode.toString());
             reports.forEach(alarmService::handleDroneReport);
             return Result.success("处理成功");
         } catch (Exception e) {
@@ -53,6 +54,7 @@ public class HardwareController {
     public Result<?> reportStatus(@RequestBody JsonNode jsonNode) {
         try {
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
+            if (reports == null || reports.isEmpty()) return Result.error("无有效数据: " + jsonNode.toString());
             reports.forEach(deviceService::handleDeviceReport);
             return Result.success("处理成功");
         } catch (Exception e) {
@@ -61,12 +63,12 @@ public class HardwareController {
     }
 
 
-
     @EventListener
     public void onDeviceReport(DeviceReportEvent e) {
         try {
             JsonNode jsonNode = mapper.readTree(e.getPayload());
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);
+            if (reports == null || reports.isEmpty()) return;
             reports.forEach(deviceService::handleDeviceReport);
         } catch (Exception ex) {
             System.out.println("解析失败: " + ex.getMessage());
@@ -79,6 +81,7 @@ public class HardwareController {
         try {
             JsonNode jsonNode = mapper.readTree(e.getPayload());
             List<AlarmConvertible> reports = droneReportParserFactory.parse(jsonNode);
+            if (reports == null || reports.isEmpty()) return;
             reports.forEach(alarmService::handleDroneReport);
         } catch (Exception ex) {
             System.out.println("解析失败: " + ex.getMessage());
