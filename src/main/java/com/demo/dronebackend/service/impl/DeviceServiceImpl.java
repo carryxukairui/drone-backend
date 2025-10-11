@@ -170,6 +170,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
     @Override
     public Map<String, Object> handleDeviceReport(DeviceConvertible report) {
         Device devFromReport  = report.toDevice();
+        System.out.println("-------"+devFromReport);
         Device existingDevice = deviceMapper.selectById(devFromReport.getId());
         if (existingDevice == null) {
             return Map.of("code", 404, "msg", "Device not found");

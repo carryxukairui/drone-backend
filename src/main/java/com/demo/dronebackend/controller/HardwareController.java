@@ -50,7 +50,7 @@ public class HardwareController {
      *
      * @param jsonNode 设备状态原始上报数据
      */
-    @PostMapping("admin/devices/sub")
+    @PostMapping("sys/portable/status/report")
     public Result<?> reportStatus(@RequestBody JsonNode jsonNode) {
         try {
             List<DeviceConvertible> reports = deviceReportParserFactory.parse(jsonNode);

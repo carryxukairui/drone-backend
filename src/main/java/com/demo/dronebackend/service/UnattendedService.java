@@ -81,8 +81,9 @@ public class UnattendedService {
                         alarm.getLastLatitude(), alarm.getLastLongitude(),
                         device.getDeviceName())
         );
-        // 4. 确定干扰频段
-        int band = determineJammerBand(alarm.getFrequency());
+        // 4. 确定干扰频段  int band = determineJammerBand(alarm.getFrequency());
+        //修改  除了1.6G频段外 其余都打开
+        int band = 16;
 
 
         // 发送 ON 干扰指令（重试机制）
@@ -108,8 +109,9 @@ public class UnattendedService {
         if (device == null) {
             return Result.error("未找到可用干扰设备");
         }
-        // 确定干扰频段
-        int band = determineJammerBand(alarm.getFrequency());
+        // 确定干扰频段\int band = determineJammerBand(alarm.getFrequency());
+        //除了1.6G频段外都打开
+        int band = 16;
         // 发送 ON 干扰指令（重试机制）
         sendJammerCommandWithRetry(device.getId(), ACTION_ON, band, user, 2);
         // 标记已处置
@@ -282,21 +284,21 @@ public class UnattendedService {
      * 发送干扰指令
      */
     public boolean sendJammerCommand(String deviceId, String action, int band, User user,Double dduration) {
-        int onoff09 = 2;
-        int onoff16 = 2;
-        int onoff24 = 2;
-        int onoff52 = 2;
-        int onoff58 = 2;
+        int onoff09 = 1;
+        int onoff16 = 1;
+        int onoff24 = 1;
+        int onoff52 = 1;
+        int onoff58 = 1;
 
         // 再对目标频段做开/关设置
-        int mode;
-        if ("ON".equalsIgnoreCase(action)) {
-            mode = 1;
-        } else if ("OFF".equalsIgnoreCase(action)) {
-            mode = 0;
-        } else {
-            mode = 2;
-        }
+        int mode = 0 ;
+//        if ("ON".equalsIgnoreCase(action)) {
+//            mode = 1;
+//        } else if ("OFF".equalsIgnoreCase(action)) {
+//            mode = 0;
+//        } else {
+//            mode = 2;
+//        }
 
         switch (band) {
             case 9 -> onoff09 = mode;
