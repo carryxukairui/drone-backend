@@ -1,6 +1,7 @@
 package com.demo.dronebackend.dto.hardware;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -13,6 +14,7 @@ public class DeviceReport {
     private String stationId;
     private List<String> scannerD;
     private String id;
+    @JsonProperty("link_status")
     private Integer linkState;
     private Double dataRate;
     private Integer foundTarget;

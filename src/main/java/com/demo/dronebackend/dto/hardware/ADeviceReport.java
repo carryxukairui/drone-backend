@@ -24,7 +24,7 @@ public class ADeviceReport implements DeviceConvertible {
     private Double lng;
     private Double lat;
     private String ip;
-    @JsonProperty("tempeature")
+    @JsonProperty("temperature")
     private Double temperature;
     @Override
     public Device toDevice() {

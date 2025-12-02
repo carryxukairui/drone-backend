@@ -99,6 +99,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         device.setDeviceType(req.getDeviceType());
         device.setCoverRange(req.getCoverRange());
         device.setPower(req.getPower());
+        device.setStationId(req.getStationId());
         device.setDeviceUserId(reqUserid);
         deviceMapper.insert(device);
 

@@ -25,7 +25,7 @@ public class DefaultDeviceReport implements DeviceConvertible {
     private String stationId;
 
     private String id;
-    @JsonProperty("link_state")
+    @JsonProperty("link_status")
     private Integer linkState;
     @JsonProperty("data_rate")
     private Double data_rate;
@@ -34,7 +34,7 @@ public class DefaultDeviceReport implements DeviceConvertible {
     private Double lng;
     private Double lat;
     private String ip;
-
+    private Double temperature;
     @Override
     public Device toDevice() {
         Device dev = new Device();
@@ -44,6 +44,8 @@ public class DefaultDeviceReport implements DeviceConvertible {
         dev.setLongitude(this.lng != null ? this.lng : 120.72);
         dev.setLatitude(this.lat != null ? this.lat : 30.527);
         dev.setIp(this.ip != null ? this.ip : "UNKNOWN");
+        dev.setReportTime(new Date());
+        dev.setTemperature(this.temperature != null ? this.temperature : 0.0);
         return dev;
     }
 }
