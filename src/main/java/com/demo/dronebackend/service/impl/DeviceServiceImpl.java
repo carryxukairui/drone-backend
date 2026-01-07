@@ -196,6 +196,26 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
             existingDevice.setTemperature(devFromReport.getTemperature());
         }
         existingDevice.setReportTime(new Date());
+        String deviceId1 = existingDevice.getId();
+        switch (deviceId1){
+            case "RemoteID_95238": {
+                existingDevice.setLatitude(29.306701);
+                existingDevice.setLongitude(118.422282);
+                break;
+            }
+            case "RemoteID_95239": {
+                existingDevice.setLatitude(29.202995);
+                existingDevice.setLongitude(118.412160);
+                break;
+            }
+            case "RemoteID_95240": {
+                existingDevice.setLatitude(29.150045);
+                existingDevice.setLongitude(118.421828);
+                break;
+            }
+        }
+        System.out.println(existingDevice);
+
         deviceMapper.updateById(existingDevice);
 
 
@@ -263,6 +283,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         dev.setLinkStatus(report.getLinkState());
         dev.setIp(report.getIp());
         dev.setStationId(report.getStationId());
+
         deviceMapper.updateById(dev);
 
         DeviceDTO dto = buildDtoFromDevice(dev);
@@ -400,9 +421,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         }
         Instant start = Instant.now();
         double duration = paramSettings.getDuration();
-        if (duration > 60){
-            duration = 60;
-        }
+//        if (duration > 60){
+//            duration = 60;
+//        }
         Instant end = start.plus(Duration.ofSeconds((long) duration));
         deviceDisposalManager.startDisposal(device, start, end);
         return Result.success("设备处置已启动");

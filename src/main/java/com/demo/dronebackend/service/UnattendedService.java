@@ -317,7 +317,7 @@ public class UnattendedService {
                     .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                     .writeValueAsString(command);
 
-            String topic = "device/command/startJam";
+            String topic = "device/jammer/command/startJam";
 
             mqttService.publish(topic, payload);
             log.info("MQTT指令已发送 | 主题:{} | 动作:{} | 频段:{}", topic, action, band);

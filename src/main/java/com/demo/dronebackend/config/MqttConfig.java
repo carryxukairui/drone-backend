@@ -19,6 +19,12 @@ public class MqttConfig {
 
     @Value("${mqtt.clientId}")
     private String clientId;
+
+    @Value("${mqtt.username}")
+    private String username;
+
+    @Value("${mqtt.password}")
+    private String password;
     private IMqttClient mqttClient;
 
     @PostConstruct
@@ -28,8 +34,15 @@ public class MqttConfig {
 
         MqttConnectOptions options = new MqttConnectOptions();
         options.setAutomaticReconnect(true);
-
+        // 设置用户名和密码
+        if (!username.isEmpty()) {
+            options.setUserName(username);
+        }
+        if (!password.isEmpty()) {
+            options.setPassword(password.toCharArray());
+        }
         mqttClient.connect(options);
+
         log.info("MQTT Client connected to broker: {}", broker);
     }
 

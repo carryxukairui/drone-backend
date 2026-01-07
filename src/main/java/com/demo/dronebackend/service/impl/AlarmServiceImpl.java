@@ -167,10 +167,6 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         int sizeLimit = req.getSize_limit();
         Date startTime= req.getStartTime();
         Date endTime= req.getEndTime();
-        // 未指定起止时间时，设置默认查询范围
-        if (startTime == null && endTime == null) {
-            startTime = new Date(System.currentTimeMillis() - DEFAULT_ALARM_TIME_RANGE);
-        }
         // 按条件查询告警 + 黑白名单类型，只显示未处置记录
         List<Map<String, Object>> rawList = alarmMapper.queryAlarmWithDroneDedup(
                 startTime,
@@ -251,43 +247,70 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         if (intrusionStartTime == null) {
             throw new BusinessException("当前告警缺少 intrusionStartTime");
         }
-        // 计算查询的时间点
-        Date startTime = new Date(intrusionStartTime.getTime() - DEFAULT_ALARM_TIME_RANGE);
+
+        // 计算当天的开始和结束时间
+        LocalDate alarmDate = intrusionStartTime.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        Date startTime = toDate(alarmDate.atStartOfDay());
+        Date endTime = toDate(alarmDate.atTime(LocalTime.MAX));
+
         Long userId = StpUtil.getLoginIdAsLong();
-        // 查询指定时间内该 droneSn 的所有告警，按入侵时间升序排序
-        List<Alarm> recentAlarms = alarmMapper.selectRecentAlarms(droneSn, startTime, intrusionStartTime,userId);
-        // 合并轨迹
+        // 查询当天该 droneSn 的所有告警，按入侵时间升序排序
+        List<Alarm> recentAlarms = alarmMapper.selectRecentAlarms(droneSn, startTime, endTime, userId);
+
+        // 合并轨迹：优先使用 trajectory 字段，如果不存在则使用告警的经纬度坐标
         List<Map<Object, Object>> mergedTrajectory = new ArrayList<>();
 
         for (Alarm alarm : recentAlarms) {
+            // 首先尝试添加 trajectory 字段中的轨迹点
             Object rawTrajectory = alarm.getTrajectory();
-            if (rawTrajectory == null) continue;
-            try {
-                List<Map<Object, Object>> trajectoryList;
-                if (rawTrajectory instanceof String) {
-                    // JSON 字符串（可能数据库驱动没有解析）
-                    trajectoryList = objectMapper.readValue(
-                            (String) rawTrajectory,
-                            new TypeReference<List<Map<Object, Object>>>() {
-                            }
-                    );
-                } else if (rawTrajectory instanceof List) {
-                    // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
-                    trajectoryList = (List<Map<Object, Object>>) rawTrajectory;
-                } else {
-                    // 其他情况（如 JSONArray、LinkedHashMap），先序列化再反序列化为目标格式
-                    String json = objectMapper.writeValueAsString(rawTrajectory);
-                    trajectoryList = objectMapper.readValue(
-                            json,
-                            new TypeReference<List<Map<Object, Object>>>() {
-                            }
-                    );
+            if (rawTrajectory != null) {
+                try {
+                    List<Map<Object, Object>> trajectoryList;
+                    if (rawTrajectory instanceof String) {
+                        // JSON 字符串（可能数据库驱动没有解析）
+                        trajectoryList = objectMapper.readValue(
+                                (String) rawTrajectory,
+                                new TypeReference<List<Map<Object, Object>>>() {
+                                }
+                        );
+                    } else if (rawTrajectory instanceof List) {
+                        // 已是 List，尝试转换（兼容 JSON 数组直接转为 ArrayList）
+                        trajectoryList = (List<Map<Object, Object>>) rawTrajectory;
+                    } else {
+                        // 其他情况（如 JSONArray、LinkedHashMap），先序列化再反序列化为目标格式
+                        String json = objectMapper.writeValueAsString(rawTrajectory);
+                        trajectoryList = objectMapper.readValue(
+                                json,
+                                new TypeReference<List<Map<Object, Object>>>() {
+                                }
+                        );
+                    }
+                    // 过滤掉无效坐标（经纬度为0的点）
+                    for (Map<Object, Object> point : trajectoryList) {
+                        if (isValidCoordinate(point)) {
+                            mergedTrajectory.add(point);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("解析 trajectory 失败, alarmId = {}", alarm.getId(), e);
                 }
-                mergedTrajectory.addAll(trajectoryList);
-            } catch (Exception e) {
-                log.error("解析 trajectory 失败, alarmId = {}", alarm.getId(), e);
+            }
+
+            // 添加告警本身的坐标点（如果经纬度存在且有效）
+            if (alarm.getLastLongitude() != null && alarm.getLastLatitude() != null) {
+                // 过滤掉无效坐标（0, 0）
+                if (isValidCoordinate(alarm.getLastLongitude(), alarm.getLastLatitude())) {
+                    Map<Object, Object> alarmPoint = new HashMap<>();
+                    // 使用 lng/lat 字段名以保持与原始格式一致
+                    alarmPoint.put("lng", alarm.getLastLongitude());
+                    alarmPoint.put("lat", alarm.getLastLatitude());
+                    mergedTrajectory.add(alarmPoint);
+                }
             }
         }
+
         // 构造 DTO
         DetailedAlarmDTO dto = BeanUtil.copyProperties(currentAlarm, DetailedAlarmDTO.class);
         dto.setTrajectory(mergedTrajectory);
@@ -648,6 +671,55 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
         double rate = (current - compare) * 100.0 / compare;
         return String.format("%.2f%%", rate);
+    }
+
+    /**
+     * 验证坐标点是否有效（过滤掉经纬度为0的无效点）
+     * @param point 包含经纬度信息的Map
+     * @return 坐标是否有效
+     */
+    private boolean isValidCoordinate(Map<Object, Object> point) {
+        if (point == null) {
+            return false;
+        }
+        // 兼容两种字段名格式：lng/lat 和 longitude/latitude
+        Object lonObj = point.get("lng");
+        if (lonObj == null) {
+            lonObj = point.get("longitude");
+        }
+
+        Object latObj = point.get("lat");
+        if (latObj == null) {
+            latObj = point.get("latitude");
+        }
+
+        if (lonObj == null || latObj == null) {
+            return false;
+        }
+
+        try {
+            double longitude = ((Number) lonObj).doubleValue();
+            double latitude = ((Number) latObj).doubleValue();
+            return isValidCoordinate(longitude, latitude);
+        } catch (Exception e) {
+            log.warn("坐标格式错误: {}", point);
+            return false;
+        }
+    }
+
+    /**
+     * 验证经纬度是否有效（过滤掉0,0坐标点）
+     * @param longitude 经度
+     * @param latitude 纬度
+     * @return 坐标是否有效
+     */
+    private boolean isValidCoordinate(Double longitude, Double latitude) {
+        if (longitude == null || latitude == null) {
+            return false;
+        }
+        // 过滤掉 (0, 0) 坐标点，通常表示无效的GPS数据
+        // 使用小的容差值来处理浮点数比较
+        return Math.abs(longitude) > 0.0001 || Math.abs(latitude) > 0.0001;
     }
 
     @Override

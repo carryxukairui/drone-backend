@@ -16,6 +16,7 @@ public class MqttServiceImpl implements MqttService {
     private final IMqttClient mqttClient;
     private final static String DEVICETOPIC = "device/status";
     private final static String TOPIC = "device/remoteID/report";
+    private final static String JammerStatusTopic = "device/jammer/status";
 
     private final ApplicationEventPublisher publisher;
     @Override
@@ -43,6 +44,10 @@ public class MqttServiceImpl implements MqttService {
             String payload = new String(message.getPayload());
             publisher.publishEvent(new DroneReportEvent(this, payload));
 
+        });
+        mqttClient.subscribe(JammerStatusTopic, (topic, message) -> {
+            String payload = new String(message.getPayload());
+            publisher.publishEvent(new DeviceReportEvent(this, payload));
         });
 
 //            try {
