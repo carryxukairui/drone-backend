@@ -180,9 +180,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         if (devFromReport.getStationId() != null) {
             existingDevice.setStationId(devFromReport.getStationId());
         }
-        if (devFromReport.getLinkStatus() != null) {
-            existingDevice.setLinkStatus(devFromReport.getLinkStatus());
-        }
+        // 收到心跳即代表设备在线，不信任硬件上报的 linkStatus
+        existingDevice.setLinkStatus(1);
         if (devFromReport.getLongitude() != null) {
             existingDevice.setLongitude(devFromReport.getLongitude());
         }
@@ -230,7 +229,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         // 如果之前已有一个未执行的“离线任务”，先取消它
         ScheduledFuture<?> prev = offlineTasks.get(deviceId);
         if (prev != null && !prev.isDone()) {
-            prev.cancel(false);
+            prev.cancel(true);
         }
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> markOffline(deviceId, deviceTopic),
@@ -297,7 +296,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         // 如果之前已有一个未执行的“离线任务”，先取消它
         ScheduledFuture<?> prev = offlineTasks.get(deviceId);
         if (prev != null && !prev.isDone()) {
-            prev.cancel(false);
+            prev.cancel(true);
         }
         ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> markOffline(deviceId, deviceTopic),

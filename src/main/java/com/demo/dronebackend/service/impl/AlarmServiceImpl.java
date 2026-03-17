@@ -357,8 +357,8 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         LambdaQueryWrapper<Alarm> qw = new LambdaQueryWrapper<>();
-        if (q.getDroneId() != null) {
-            qw.eq(Alarm::getDroneId, q.getDroneId());
+        if (StrUtil.isNotBlank(q.getDroneSn())) {
+            qw.like(Alarm::getDroneSn, q.getDroneSn());
         }
         if (StrUtil.isNotBlank(q.getDroneModel())) {
             qw.like(Alarm::getDroneModel, q.getDroneModel());
@@ -374,6 +374,9 @@ public class AlarmServiceImpl extends ServiceImpl<AlarmMapper, Alarm>
         }
         if (q.getDetectType() != null) {
             qw.eq(Alarm::getDetectType, q.getDetectType());
+        }
+        if(q.getDeviceId() != null&& !q.getDeviceId().isEmpty()){
+            qw.eq(Alarm::getScanid, q.getDeviceId());
         }
 
         User me = CurrentUserContext.get();

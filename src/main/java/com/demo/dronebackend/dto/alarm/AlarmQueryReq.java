@@ -16,8 +16,8 @@ public class AlarmQueryReq {
     @Min(value = 1, message = "size 必须 ≥ 1")
     private Integer size = 10;
 
-    /** 无人机 ID */
-    private Long droneId;
+    /** 无人机序列号 */
+    private String droneSn;
 
     /** 无人机型号（模糊匹配） */
     private String droneModel;
@@ -35,4 +35,7 @@ public class AlarmQueryReq {
 
     /** 探测类型 */
     private Integer detectType;
+
+    //设备 ID
+    private String deviceId;
 }
