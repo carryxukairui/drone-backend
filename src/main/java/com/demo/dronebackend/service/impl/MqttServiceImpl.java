@@ -19,6 +19,8 @@ public class MqttServiceImpl implements MqttService {
     private final static String JammerStatusTopic = "device/jammer/status";
 
     private final ApplicationEventPublisher publisher;
+
+    //给干扰机发送消息
     @Override
     public void publish(String topic, String message) throws MqttException {
         MqttMessage mqttMessage = new MqttMessage(message.getBytes());

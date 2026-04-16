@@ -81,6 +81,13 @@ public class DeviceController {
 
         return deviceService.listDevices(query);
     }
+
+    /**
+     * 干扰机发送指令
+     * @param command
+     * @return
+     * @throws Exception
+     */
     @PostMapping("/publish")
     public String publish(@RequestBody DeviceCommand  command) throws Exception {
         //把command转化为json字符串
